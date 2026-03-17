@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* URADI-360 Design System - From YAML Specification */
+:root {
+  /* Background Colors (Midnight Navy Theme) */
+  --background: 222 47% 7%; /* #0B1120 */
+  --foreground: 210 40% 98%; /* #F9FAFB */
+  
+  --card: 222 47% 9%; /* #111827 */
+  --card-foreground: 210 40% 98%;
+  
+  --popover: 222 47% 9%;
+  --popover-foreground: 210 40% 98%;
+  
+  /* Primary - Gold Accent */
+  --primary: 45 55% 55%; /* #C8A94E */
+  --primary-foreground: 222 47% 7%;
+  
+  /* Secondary */
+  --secondary: 222 47% 12%; /* #1F2937 */
+  --secondary-foreground: 210 40% 98%;
+  
+  /* Muted */
+  --muted: 222 47% 12%;
+  --muted-foreground: 215 20% 65%; /* #9CA3AF */
+  
+  /* Accent */
+  --accent: 45 55% 55%;
+  --accent-foreground: 222 47% 7%;
+  
+  /* Destructive */
+  --destructive: 0 84% 60%; /* #EF4444 */
+  --destructive-foreground: 210 40% 98%;
+  
+  /* Border */
+  --border: 217 19% 27%; /* #374151 */
+  --input: 217 19% 27%;
+  --ring: 45 55% 55%;
+  
+  /* Radius */
+  --radius: 0.75rem;
+}
+
+/* Dark mode is default for URADI-360 */
+.dark {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 98%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  /* Data/Numbers use JetBrains Mono */
+  .font-data {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B1120;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4B5563;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(200, 169, 78, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(200, 169, 78, 0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s infinite;
+}
+
+/* Status Colors */
+.status-positive { color: #10B981; }
+.status-warning { color: #F59E0B; }
+.status-critical { color: #EF4444; }
+.status-neutral { color: #6366F1; }
+.status-info { color: #3B82F6; }
+
+/* Gold Accent */
+.text-gold { color: #C8A94E; }
+.bg-gold { background-color: #C8A94E; }
+.border-gold { border-color: #C8A94E; }
+
+/* Glass Effect */
+.glass {
+  background: rgba(17, 24, 39, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(55, 65, 81, 0.5);
+}
