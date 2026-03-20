@@ -1,6 +1,15 @@
 # Dependencies
 node_modules/
 .env
+.env.production
+.env.local
+.env.*.local
+
+# Secrets
+*.pem
+*.key
+secrets/
+config/secrets/
 
 # Build outputs
 dist/

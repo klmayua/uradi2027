@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from datetime import datetime, timedelta
 from database import get_db
 from models import User
 from .utils import hash_password, verify_password, create_access_token, get_current_user
+from utils.rate_limiting import auth_limit
+from utils.logging_config import audit_logger, get_logger
 import os
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -26,34 +28,52 @@ class UserResponse(BaseModel):
     tenant_id: str
 
 @router.post("/login", response_model=LoginResponse)
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+@auth_limit()
+def login(request: Request, credentials: LoginRequest, db: Session = Depends(get_db)):
     """Authenticate user and return JWT token"""
     # Find user by email
     user = db.query(User).filter(User.email == credentials.email).first()
-    
+
     # Verify user exists and password is correct
     if not user or not verify_password(credentials.password, user.password_hash):
+        # Log failed login attempt
+        audit_logger.log_auth_event(
+            event_type="failed_login",
+            user_id=credentials.email,  # Log attempted email
+            success=False,
+            ip_address=request.client.host if request.client else None,
+            details={"reason": "invalid_credentials"}
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Create access token
     access_token_expires = timedelta(hours=int(os.getenv("JWT_EXPIRY_HOURS", 24)))
     access_token = create_access_token(
         data={
-            "user_id": str(user.id), 
+            "user_id": str(user.id),
             "email": user.email,
             "tenant_id": user.tenant_id
-        }, 
+        },
         expires_delta=access_token_expires
     )
-    
+
     # Update last login time
     user.last_login = datetime.utcnow()
     db.commit()
-    
+
+    # Log successful login
+    audit_logger.log_auth_event(
+        event_type="login",
+        user_id=str(user.id),
+        success=True,
+        ip_address=request.client.host if request.client else None,
+        details={"tenant_id": user.tenant_id, "role": user.role}
+    )
+
     return {
         "access_token": access_token,
         "token_type": "bearer",

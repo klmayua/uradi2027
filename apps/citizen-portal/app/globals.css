@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* URADI-360 Color System */
+  --uradi-gold: #D4AF37;
+  --uradi-gold-light: #E5C158;
+  --uradi-gold-dark: #B8962E;
+
+  /* Background Colors */
+  --uradi-bg-primary: #0B1120;
+  --uradi-bg-secondary: #111827;
+  --uradi-bg-tertiary: #1F2937;
+
+  /* Text Colors */
+  --uradi-text-primary: #F9FAFB;
+  --uradi-text-secondary: #9CA3AF;
+  --uradi-text-tertiary: #6B7280;
+
+  /* Border Colors */
+  --uradi-border: #374151;
+
+  /* Status Colors */
+  --uradi-status-success: #10B981;
+  --uradi-status-critical: #EF4444;
+  --uradi-status-warning: #F59E0B;
+  --uradi-status-info: #3B82F6;
+  --uradi-status-neutral: #6B7280;
+  --uradi-status-positive: #10B981;
+
+  /* Party Colors */
+  --uradi-party-pdp: #DC2626;
+  --uradi-party-apc: #1E40AF;
+  --uradi-party-nnpp: #7C3AED;
+  --uradi-party-adc: #059669;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background-color: var(--uradi-bg-primary);
+  color: var(--uradi-text-primary);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--uradi-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--uradi-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--uradi-text-tertiary);
+}
+
+/* Utility classes */
+.bg-uradi-bg-primary {
+  background-color: var(--uradi-bg-primary);
+}
+
+.bg-uradi-bg-secondary {
+  background-color: var(--uradi-bg-secondary);
+}
+
+.bg-uradi-bg-tertiary {
+  background-color: var(--uradi-bg-tertiary);
+}
+
+.bg-uradi-gold {
+  background-color: var(--uradi-gold);
+}
+
+.bg-uradi-gold\/10 {
+  background-color: rgba(212, 175, 55, 0.1);
+}
+
+.text-uradi-gold {
+  color: var(--uradi-gold);
+}
+
+.text-uradi-text-primary {
+  color: var(--uradi-text-primary);
+}
+
+.text-uradi-text-secondary {
+  color: var(--uradi-text-secondary);
+}
+
+.text-uradi-text-tertiary {
+  color: var(--uradi-text-tertiary);
+}
+
+.border-uradi-border {
+  border-color: var(--uradi-border);
+}
+
+.hover\:bg-uradi-gold-light:hover {
+  background-color: var(--uradi-gold-light);
+}
+
+.hover\:text-uradi-gold:hover {
+  color: var(--uradi-gold);
+}
+
+/* Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Line clamp */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

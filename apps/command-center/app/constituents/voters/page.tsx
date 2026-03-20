@@ -53,6 +53,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 import {
   Dialog,
   DialogContent,
@@ -340,7 +341,8 @@ export default function VotersPage() {
 
       {/* Table */}
       <div className="bg-uradi-bg-secondary border border-uradi-border rounded-xl overflow-hidden">
-        <Table>
+        <ResponsiveTable>
+          <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-uradi-border hover:bg-transparent">
@@ -381,6 +383,7 @@ export default function VotersPage() {
             )}
           </TableBody>
         </Table>
+        </ResponsiveTable>
 
         {/* Pagination */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-uradi-border">

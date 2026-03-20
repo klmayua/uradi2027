@@ -3,7 +3,7 @@ AI Agents Module - Phase 4
 Sentiment Analysis Agent, Targeting Recommendations, Scenario Simulation
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from pydantic import BaseModel
@@ -11,12 +11,15 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import json
 import uuid
+import asyncio
 from database import get_db
 from models import (
     Voter, SentimentEntry, IntelligenceReport, Scenario, CoalitionPartner,
     LGA, Ward, ContentItem
 )
 from auth.utils import get_current_user
+from services.kimi_client import kimi_client, SentimentResult, TargetingRecommendation, ScenarioProjection
+from utils.rate_limiting import api_write_limit
 
 router = APIRouter(prefix="/api/ai-agents", tags=["AI Agents"])
 
@@ -108,30 +111,48 @@ class CoalitionStabilityResponse(BaseModel):
 
 # ==================== SENTIMENT ANALYSIS AGENT (Task 4.1) ====================
 
-def analyze_sentiment_with_ai(text: str, language: Optional[str] = None) -> Dict[str, Any]:
+async def analyze_sentiment_with_ai(text: str, language: Optional[str] = None, context: Optional[str] = None) -> Dict[str, Any]:
     """
-    AI-powered sentiment analysis using Kimi/Ollama
-    In production, this would call the Ollama API
+    AI-powered sentiment analysis using Kimi API
+    Falls back to keyword-based analysis if API fails
     """
-    # Simulated AI analysis (replace with actual Ollama call)
-    # Example: response = ollama.chat(model='kimi', messages=[...])
-    
+    try:
+        # Try Kimi API first
+        result = await kimi_client.analyze_sentiment(text, language, context)
+        return {
+            "sentiment_score": result.score,
+            "sentiment_label": result.label,
+            "category": result.category,
+            "key_issues": result.key_issues,
+            "urgency_level": result.urgency_level,
+            "language_detected": result.language,
+            "confidence": result.confidence,
+            "source": "kimi_api"
+        }
+    except Exception as e:
+        print(f"Kimi API failed, falling back to keyword analysis: {e}")
+        # Fallback to keyword-based analysis
+        return _analyze_sentiment_fallback(text, language)
+
+
+def _analyze_sentiment_fallback(text: str, language: Optional[str] = None) -> Dict[str, Any]:
+    """Fallback keyword-based sentiment analysis"""
     text_lower = text.lower()
-    
-    # Simple keyword-based analysis for demo
+
+    # Simple keyword-based analysis
     positive_words = ['good', 'great', 'excellent', 'happy', 'support', 'best', 'love', 'thank', 'appreciate', 'murna', 'kyauta', 'godiya']
     negative_words = ['bad', 'terrible', 'worst', 'hate', 'angry', 'disappointed', 'problem', 'issue', 'complaint', 'ba dadi', 'matsala', 'ba kyauta']
-    
+
     positive_count = sum(1 for word in positive_words if word in text_lower)
     negative_count = sum(1 for word in negative_words if word in text_lower)
-    
+
     # Calculate score (-100 to +100)
     total = positive_count + negative_count
     if total == 0:
         score = 0
     else:
         score = int(((positive_count - negative_count) / total) * 100)
-    
+
     # Determine label
     if score >= 80:
         label = "very_positive"
@@ -143,7 +164,7 @@ def analyze_sentiment_with_ai(text: str, language: Optional[str] = None) -> Dict
         label = "negative"
     else:
         label = "very_negative"
-    
+
     # Category detection
     categories = {
         'governance': ['government', 'administration', 'leadership', 'policy', 'maji'],
@@ -152,7 +173,7 @@ def analyze_sentiment_with_ai(text: str, language: Optional[str] = None) -> Dict
         'infrastructure': ['road', 'water', 'electricity', 'hospital', 'school', 'hanya', 'ruwa', 'wutar lantarki'],
         'candidate': ['candidate', 'mustapha', 'lamido', 'election', 'vote', 'zabe', 'dan takara']
     }
-    
+
     detected_category = "general"
     max_matches = 0
     for cat, keywords in categories.items():
@@ -160,7 +181,7 @@ def analyze_sentiment_with_ai(text: str, language: Optional[str] = None) -> Dict
         if matches > max_matches:
             max_matches = matches
             detected_category = cat
-    
+
     # Extract key issues
     key_issues = []
     issue_keywords = {
@@ -171,39 +192,41 @@ def analyze_sentiment_with_ai(text: str, language: Optional[str] = None) -> Dict
         'electricity': ['power', 'electricity', 'light', 'wutar lantarki', 'kaji'],
         'water': ['water', 'supply', 'ruwa', 'sha ruwa']
     }
-    
+
     for issue, keywords in issue_keywords.items():
         if any(kw in text_lower for kw in keywords):
             key_issues.append(issue)
-    
+
     # Urgency level
     urgency_keywords = ['urgent', 'emergency', 'critical', 'immediately', 'yau da kullum', 'gaggawa']
     urgency = "critical" if any(kw in text_lower for kw in urgency_keywords) else \
               "high" if negative_count > 2 else \
               "medium" if negative_count > 0 else "low"
-    
+
     return {
         "sentiment_score": score,
         "sentiment_label": label,
         "category": detected_category,
-        "key_issues": key_issues[:3],  # Top 3 issues
+        "key_issues": key_issues[:3],
         "urgency_level": urgency,
         "language_detected": language or "auto",
-        "confidence": 0.75 + (abs(score) / 400)  # Higher confidence for extreme scores
+        "confidence": 0.5 + (abs(score) / 400),  # Lower confidence for fallback
+        "source": "fallback"
     }
 
 
 @router.post("/sentiment/analyze", response_model=SentimentAnalysisResponse)
-def analyze_sentiment(
+@api_write_limit()
+async def analyze_sentiment(
     request: SentimentAnalysisRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Analyze sentiment of a single text entry using AI
+    Analyze sentiment of a single text entry using Kimi AI
     """
-    result = analyze_sentiment_with_ai(request.text, request.language)
-    
+    result = await analyze_sentiment_with_ai(request.text, request.language)
+
     # Save to database
     entry = SentimentEntry(
         id=uuid.uuid4(),
@@ -218,29 +241,30 @@ def analyze_sentiment(
         language=result["language_detected"],
         processed=True
     )
-    
+
     db.add(entry)
     db.commit()
-    
+
     return SentimentAnalysisResponse(**result)
 
 
 @router.post("/sentiment/batch-process", response_model=BatchSentimentResponse)
-def batch_process_sentiment(
+@api_write_limit()
+async def batch_process_sentiment(
     request: BatchSentimentRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    Batch process sentiment entries (Celery background task)
+    Batch process sentiment entries using Kimi AI
     """
     # Get entries to process
     query = db.query(SentimentEntry).filter(
         SentimentEntry.tenant_id == current_user.tenant_id,
         SentimentEntry.processed == False
     )
-    
+
     if request.entry_ids:
         query = query.filter(SentimentEntry.id.in_(request.entry_ids))
     if request.lga_filter:
@@ -249,35 +273,38 @@ def batch_process_sentiment(
         query = query.filter(SentimentEntry.created_at >= request.date_from)
     if request.date_to:
         query = query.filter(SentimentEntry.created_at <= request.date_to)
-    
-    entries = query.all()
-    
+
+    entries = query.limit(100).all()  # Limit to 100 at a time
+
     processed = 0
     errors = 0
     total_score = 0
     categories = {}
-    
+
     for entry in entries:
         try:
-            result = analyze_sentiment_with_ai(entry.raw_text, entry.language)
-            
+            result = await analyze_sentiment_with_ai(entry.raw_text, entry.language)
+
             entry.sentiment = result["sentiment_label"]
             entry.score = result["sentiment_score"]
             entry.topics = result["key_issues"]
             entry.processed = True
-            
+
             total_score += result["sentiment_score"]
             categories[result["category"]] = categories.get(result["category"], 0) + 1
-            
+
             processed += 1
+
+            # Small delay to avoid rate limiting
+            await asyncio.sleep(0.1)
         except Exception as e:
             errors += 1
             print(f"Error processing entry {entry.id}: {e}")
-    
+
     db.commit()
-    
+
     avg_sentiment = total_score / processed if processed > 0 else 0
-    
+
     return BatchSentimentResponse(
         processed=processed,
         errors=errors,
@@ -808,7 +835,7 @@ def analyze_coalition_stability(
 # ==================== AI AGENT STATUS & CONTROLS ====================
 
 @router.get("/status")
-def get_ai_agents_status(
+async def get_ai_agents_status(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -820,19 +847,23 @@ def get_ai_agents_status(
         SentimentEntry.tenant_id == current_user.tenant_id,
         SentimentEntry.processed == False
     ).count()
-    
+
     # Get last run times
     last_sentiment_report = db.query(IntelligenceReport).filter(
         IntelligenceReport.tenant_id == current_user.tenant_id,
         IntelligenceReport.report_type == "sentiment_summary"
     ).order_by(IntelligenceReport.created_at.desc()).first()
-    
+
+    # Check Kimi API health
+    kimi_healthy = await kimi_client.health_check()
+
     return {
         "agents": {
             "sentiment_analysis": {
-                "status": "active",
+                "status": "active" if kimi_healthy else "degraded",
                 "unprocessed_entries": unprocessed_sentiment,
-                "last_run": last_sentiment_report.created_at.isoformat() if last_sentiment_report else None
+                "last_run": last_sentiment_report.created_at.isoformat() if last_sentiment_report else None,
+                "api_provider": "kimi" if kimi_healthy else "fallback"
             },
             "targeting_recommendations": {
                 "status": "active",
@@ -852,8 +883,12 @@ def get_ai_agents_status(
                 ).count()
             }
         },
+        "kimi_api": {
+            "healthy": kimi_healthy,
+            "usage_stats": kimi_client.get_usage_stats()
+        },
         "queue_size": unprocessed_sentiment,
-        "system_health": "healthy" if unprocessed_sentiment < 100 else "backlogged"
+        "system_health": "healthy" if unprocessed_sentiment < 100 and kimi_healthy else "backlogged"
     }
 
 

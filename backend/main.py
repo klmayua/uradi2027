@@ -1,8 +1,20 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import os
+from datetime import datetime
 
 from services.websocket import ws_manager, election_ws
+
+# Import rate limiting
+from utils.rate_limiting import limiter, rate_limit_exceeded_handler
+
+# Import structured logging
+from utils.logging_config import CorrelationIdMiddleware, configure_structlog, get_logger
+
+# Import health checks
+from utils.health_checks import health_checker
+from slowapi.errors import RateLimitExceeded
 
 # Import routers
 from auth.routes import router as auth_router
@@ -29,6 +41,8 @@ from api.polls import router as polls_router
 from api.email import router as email_router
 from api.payments import router as payments_router
 from api.public import router as public_router
+from api.ussd import router as ussd_router
+from api.compliance import router as compliance_router
 
 app = FastAPI(
     title="URADI-360 API",
@@ -36,9 +50,41 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Add CORS middleware
-origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
-if origins and origins[0]:
+# Add rate limiter to app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# Add correlation ID middleware for structured logging
+app.add_middleware(CorrelationIdMiddleware)
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Add security headers to all responses"""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return response
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Global exception handler"""
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "timestamp": datetime.utcnow().isoformat(),
+            "path": str(request.url.path)
+        }
+    )
+
+# CORS Configuration
+origins_str = os.getenv("CORS_ORIGIN", "")
+origins = [origin.strip() for origin in origins_str.split(",") if origin.strip()]
+
+if origins:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -47,39 +93,55 @@ if origins and origins[0]:
         allow_headers=["*"],
     )
 
-# Include routers
-app.include_router(auth_router)
-app.include_router(tenants_router)
-app.include_router(users_router)
-app.include_router(political_actors_router)
-app.include_router(scenarios_router)
-app.include_router(coalition_router)
-app.include_router(scorecards_router)
-app.include_router(content_router)
-app.include_router(budget_router)
-app.include_router(intelligence_router)
-app.include_router(targeting_router)
-app.include_router(field_app_router)
-app.include_router(collection_router)
-app.include_router(canvassing_router)
-app.include_router(incidents_router)
-app.include_router(election_day_router)
-app.include_router(sync_router)
-app.include_router(ai_agents_router)
-app.include_router(governance_router)
-app.include_router(rapid_response_router)
-app.include_router(polls_router)
-app.include_router(email_router)
-app.include_router(payments_router)
-app.include_router(public_router)
+# Include routers with rate limiting
+# Auth router - strict limits
+app.include_router(auth_router, prefix="/auth")
+
+# API routers - standard limits
+app.include_router(tenants_router, prefix="/api")
+app.include_router(users_router, prefix="/api")
+app.include_router(political_actors_router, prefix="/api")
+app.include_router(scenarios_router, prefix="/api")
+app.include_router(coalition_router, prefix="/api")
+app.include_router(scorecards_router, prefix="/api")
+app.include_router(content_router, prefix="/api")
+app.include_router(budget_router, prefix="/api")
+app.include_router(intelligence_router, prefix="/api")
+app.include_router(targeting_router, prefix="/api")
+app.include_router(field_app_router, prefix="/api")
+app.include_router(collection_router, prefix="/api")
+app.include_router(canvassing_router, prefix="/api")
+app.include_router(incidents_router, prefix="/api")
+app.include_router(election_day_router, prefix="/api")
+app.include_router(sync_router, prefix="/api")
+app.include_router(ai_agents_router, prefix="/api")
+app.include_router(governance_router, prefix="/api")
+app.include_router(rapid_response_router, prefix="/api")
+app.include_router(polls_router, prefix="/api")
+app.include_router(email_router, prefix="/api")
+app.include_router(payments_router, prefix="/api")
+app.include_router(public_router, prefix="/api")
+app.include_router(ussd_router)
+app.include_router(compliance_router, prefix="/api")
 
 @app.get("/")
-def read_root():
+@limiter.limit("100/minute")
+def read_root(request: Request):
     return {"message": "Welcome to URADI-360 API"}
 
+
 @app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+@limiter.limit("60/minute")
+async def health_check(request: Request):
+    """Comprehensive health check endpoint"""
+    return await health_checker.run_all_checks()
+
+
+@app.get("/health/simple")
+@limiter.limit("100/minute")
+def health_check_simple(request: Request):
+    """Simple health check for load balancers"""
+    return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
 
 
 # ==================== WEBSOCKET ENDPOINTS ====================
@@ -137,7 +199,8 @@ async def websocket_public(websocket: WebSocket):
 
 
 @app.get("/ws/status")
-def websocket_status():
+@limiter.limit("30/minute")
+def websocket_status(request: Request):
     """Get WebSocket connection statistics."""
     return {
         "live_results_connections": ws_manager.get_connection_count("live_results"),
@@ -145,6 +208,14 @@ def websocket_status():
         "monitor_connections": ws_manager.get_connection_count("monitor_updates"),
         "public_connections": ws_manager.get_connection_count("public_updates")
     }
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Configure logging on startup"""
+    configure_structlog()
+    logger = get_logger("uradi360.main")
+    logger.info("URADI-360 API starting up", version="1.0.0")
 
 
 if __name__ == "__main__":

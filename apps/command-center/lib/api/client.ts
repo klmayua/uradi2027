@@ -59,13 +59,30 @@ export async function fetchApi<T>(
   }
 }
 
+// Helper to build URL with query params
+function buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined>): string {
+  if (!params) return endpoint;
+  const queryParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      queryParams.append(key, String(value));
+    }
+  });
+  const queryString = queryParams.toString();
+  return queryString ? `${endpoint}?${queryString}` : endpoint;
+}
+
 // HTTP method helpers
 export const api = {
-  get: <T>(endpoint: string) => fetchApi<T>(endpoint, { method: "GET" }),
-  post: <T>(endpoint: string, body: unknown) =>
+  get: <T>(endpoint: string, options?: { params?: Record<string, string | number | boolean | undefined> }) => {
+    const url = buildUrl(endpoint, options?.params);
+    return fetchApi<T>(url, { method: "GET" });
+  },
+  post: <T>(endpoint: string, body: unknown, options?: { headers?: Record<string, string> }) =>
     fetchApi<T>(endpoint, {
       method: "POST",
-      body: JSON.stringify(body),
+      body: body instanceof FormData ? body : JSON.stringify(body),
+      headers: body instanceof FormData ? {} : { "Content-Type": "application/json" },
     }),
   put: <T>(endpoint: string, body: unknown) =>
     fetchApi<T>(endpoint, {

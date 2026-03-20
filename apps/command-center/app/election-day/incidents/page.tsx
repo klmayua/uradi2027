@@ -58,6 +58,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
 
 interface ElectionIncident {
   id: string;
@@ -258,7 +259,7 @@ export default function IncidentsPage() {
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
-          <div className="flex flex-wrap items-center gap-4 p-4 bg-uradi-bg-secondary border border-uradi-border rounded-xl">
+          <div className="flex flex-wrap items-center gap-4 p-4 bg-uradi-bg-secondary border border-uradi-border rounded-xl overflow-x-auto">
             <div className="flex items-center gap-2 flex-1 min-w-[200px]">
               <Filter className="h-4 w-4 text-uradi-text-tertiary" />
               <Input placeholder="Search incidents..." className="flex-1" />
@@ -305,6 +306,7 @@ export default function IncidentsPage() {
           </div>
 
           <div className="bg-uradi-bg-secondary border border-uradi-border rounded-xl overflow-hidden">
+            <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow className="border-uradi-border hover:bg-transparent">
@@ -355,11 +357,13 @@ export default function IncidentsPage() {
                 })}
               </TableBody>
             </Table>
+            </ResponsiveTable>
           </div>
         </TabsContent>
 
         <TabsContent value="resolved">
           <div className="bg-uradi-bg-secondary border border-uradi-border rounded-xl overflow-hidden">
+            <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow className="border-uradi-border hover:bg-transparent">
@@ -403,6 +407,7 @@ export default function IncidentsPage() {
                 ))}
               </TableBody>
             </Table>
+            </ResponsiveTable>
           </div>
         </TabsContent>
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, Integer, Boolean, DateTime, ForeignKey, func, Float
+from sqlalchemy import Column, String, Text, Integer, Boolean, DateTime, ForeignKey, func, Float, event, Index
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import uuid
@@ -10,6 +10,29 @@ except ImportError:
     # Fallback if database module is not available
     from sqlalchemy.ext.declarative import declarative_base
     Base = declarative_base()
+
+# Import sanitization utilities
+try:
+    from utils.sanitization import (
+        sanitize_sentiment_text,
+        sanitize_content_body,
+        sanitize_report_body,
+        sanitize_incident_description,
+        sanitize_notes,
+        sanitize_phone_number,
+        sanitize_email,
+        sanitize_vin
+    )
+except ImportError:
+    # Fallback if utils not available
+    def sanitize_sentiment_text(text): return text
+    def sanitize_content_body(text): return text
+    def sanitize_report_body(text): return text
+    def sanitize_incident_description(text): return text
+    def sanitize_notes(text): return text
+    def sanitize_phone_number(phone): return phone
+    def sanitize_email(email): return email
+    def sanitize_vin(vin): return vin
 
 class Tenant(Base):
     __tablename__ = "tenants"
@@ -71,9 +94,19 @@ class Ward(Base):
 
 class Voter(Base):
     __tablename__ = "voters"
-    
+
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_voter_tenant_lga', 'tenant_id', 'lga_id'),
+        Index('idx_voter_tenant_ward', 'tenant_id', 'ward_id'),
+        Index('idx_voter_sentiment', 'sentiment_score'),
+        Index('idx_voter_phone', 'phone'),
+        Index('idx_voter_party', 'party_leaning'),
+        Index('idx_voter_created', 'created_at'),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(String, ForeignKey("tenants.id"))
+    tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     full_name = Column(String, nullable=False)
     phone = Column(String)
     lga_id = Column(UUID(as_uuid=True), ForeignKey("lgas.id"))
@@ -91,11 +124,21 @@ class Voter(Base):
     tags = Column(JSONB, default=[])
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), default=func.now())
-    updated_at = Column(DateTime(timezone=True), default=func.now())
-    
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+
     tenant = relationship("Tenant")
     lga = relationship("LGA")
     ward = relationship("Ward")
+
+# Event listener to sanitize voter data before insert/update
+@event.listens_for(Voter, 'before_insert')
+@event.listens_for(Voter, 'before_update')
+def sanitize_voter_data(mapper, connection, target):
+    """Sanitize voter data before saving to database"""
+    if target.phone:
+        target.phone = sanitize_phone_number(target.phone)
+    if target.notes:
+        target.notes = sanitize_notes(target.notes)
 
 class AnchorCitizen(Base):
     __tablename__ = "anchor_citizens"
@@ -141,9 +184,17 @@ class PoliticalActor(Base):
 
 class SentimentEntry(Base):
     __tablename__ = "sentiment_entries"
-    
+
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_sentiment_tenant_created', 'tenant_id', 'created_at'),
+        Index('idx_sentiment_source', 'source'),
+        Index('idx_sentiment_score', 'score'),
+        Index('idx_sentiment_processed', 'processed'),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(String, ForeignKey("tenants.id"))
+    tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     source = Column(String, nullable=False)
     lga_id = Column(UUID(as_uuid=True), ForeignKey("lgas.id"))
     ward_id = Column(UUID(as_uuid=True), ForeignKey("wards.id"))
@@ -155,16 +206,32 @@ class SentimentEntry(Base):
     respondent_phone = Column(String)
     processed = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=func.now())
-    
+
     tenant = relationship("Tenant")
     lga = relationship("LGA")
     ward = relationship("Ward")
 
+# Event listener to sanitize sentiment data
+@event.listens_for(SentimentEntry, 'before_insert')
+@event.listens_for(SentimentEntry, 'before_update')
+def sanitize_sentiment_data(mapper, connection, target):
+    """Sanitize sentiment entry data before saving"""
+    if target.raw_text:
+        target.raw_text = sanitize_sentiment_text(target.raw_text)
+    if target.respondent_phone:
+        target.respondent_phone = sanitize_phone_number(target.respondent_phone)
+
 class ContentItem(Base):
     __tablename__ = "content_items"
-    
+
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_content_tenant_status', 'tenant_id', 'status'),
+        Index('idx_content_created', 'created_at'),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(String, ForeignKey("tenants.id"))
+    tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     title = Column(String, nullable=False)
     body = Column(Text)
     content_type = Column(String)
@@ -176,9 +243,17 @@ class ContentItem(Base):
     engagement = Column(JSONB, default={})
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=func.now())
-    
+
     tenant = relationship("Tenant")
     creator = relationship("User")
+
+# Event listener to sanitize content data
+@event.listens_for(ContentItem, 'before_insert')
+@event.listens_for(ContentItem, 'before_update')
+def sanitize_content_data(mapper, connection, target):
+    """Sanitize content item data before saving"""
+    if target.body:
+        target.body = sanitize_content_body(target.body)
 
 class ScorecardEntry(Base):
     __tablename__ = "scorecard_entries"
@@ -219,9 +294,16 @@ class MessageLog(Base):
 
 class IntelligenceReport(Base):
     __tablename__ = "intelligence_reports"
-    
+
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_report_tenant_created', 'tenant_id', 'created_at'),
+        Index('idx_report_priority', 'priority'),
+        Index('idx_report_type', 'report_type'),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(String, ForeignKey("tenants.id"))
+    tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     title = Column(String, nullable=False)
     report_type = Column(String)
     body = Column(Text, nullable=False)
@@ -229,9 +311,19 @@ class IntelligenceReport(Base):
     attachments = Column(JSONB, default=[])
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), default=func.now())
-    
+
     tenant = relationship("Tenant")
     creator = relationship("User")
+
+# Event listener to sanitize intelligence report data
+@event.listens_for(IntelligenceReport, 'before_insert')
+@event.listens_for(IntelligenceReport, 'before_update')
+def sanitize_intelligence_report_data(mapper, connection, target):
+    """Sanitize intelligence report data before saving"""
+    if target.body:
+        target.body = sanitize_report_body(target.body)
+    if target.title:
+        target.title = sanitize_notes(target.title)[:200]  # Limit title length
 
 
 class Scenario(Base):
@@ -275,9 +367,17 @@ class CoalitionPartner(Base):
 
 class PollingUnit(Base):
     __tablename__ = "polling_units"
-    
+
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_pu_tenant_lga', 'tenant_id', 'lga_id'),
+        Index('idx_pu_tenant_ward', 'tenant_id', 'ward_id'),
+        Index('idx_pu_code', 'pu_code'),
+        Index('idx_pu_status', 'status'),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(String, ForeignKey("tenants.id"))
+    tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     lga_id = Column(UUID(as_uuid=True), ForeignKey("lgas.id"))
     ward_id = Column(UUID(as_uuid=True), ForeignKey("wards.id"))
     pu_code = Column(String, nullable=False)  # e.g., "001", "002"
@@ -289,7 +389,7 @@ class PollingUnit(Base):
     longitude = Column(Float)
     status = Column(String, default="active")  # active, closed, suspended
     created_at = Column(DateTime(timezone=True), default=func.now())
-    
+
     tenant = relationship("Tenant")
     lga = relationship("LGA")
     ward = relationship("Ward")
@@ -358,9 +458,17 @@ class VoteTally(Base):
 
 class ElectionDayIncident(Base):
     __tablename__ = "election_day_incidents"
-    
+
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_incident_tenant_reported', 'tenant_id', 'reported_at'),
+        Index('idx_incident_severity', 'severity'),
+        Index('idx_incident_status', 'status'),
+        Index('idx_incident_polling_unit', 'polling_unit_id'),
+    )
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(String, ForeignKey("tenants.id"))
+    tenant_id = Column(String, ForeignKey("tenants.id"), nullable=False)
     polling_unit_id = Column(UUID(as_uuid=True), ForeignKey("polling_units.id"))
     monitor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     incident_type = Column(String, nullable=False)  # violence, ballot_snatching, bribery, accreditation_issue, materials_shortage, other
@@ -373,10 +481,20 @@ class ElectionDayIncident(Base):
     reported_at = Column(DateTime(timezone=True), default=func.now())
     resolved_at = Column(DateTime(timezone=True))
     resolution_notes = Column(Text)
-    
+
     tenant = relationship("Tenant")
     polling_unit = relationship("PollingUnit")
     monitor = relationship("User")
+
+# Event listener to sanitize incident data
+@event.listens_for(ElectionDayIncident, 'before_insert')
+@event.listens_for(ElectionDayIncident, 'before_update')
+def sanitize_incident_data(mapper, connection, target):
+    """Sanitize incident data before saving"""
+    if target.description:
+        target.description = sanitize_incident_description(target.description)
+    if target.resolution_notes:
+        target.resolution_notes = sanitize_notes(target.resolution_notes)
 
 
 class BudgetItem(Base):

@@ -3,43 +3,35 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { useLogin } from '@/hooks/useAuth';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const router = useRouter();
+  const loginMutation = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
     try {
-      // Simulate API call to backend
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store token in localStorage or cookies
-        localStorage.setItem('token', data.access_token);
-        router.push('/overview');
-      } else {
-        setError(data.detail || 'Login failed');
+      const result = await loginMutation.mutateAsync({ email, password });
+      // Store token in localStorage
+      localStorage.setItem('token', result.access_token);
+      // Store refresh token if available
+      if (result.refresh_token) {
+        localStorage.setItem('refresh_token', result.refresh_token);
       }
-    } catch (err) {
-      setError('An error occurred during login');
-    } finally {
-      setLoading(false);
+      // Store user info
+      if (result.user) {
+        localStorage.setItem('user', JSON.stringify(result.user));
+      }
+      router.push('/overview');
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please check your credentials.');
     }
   };
 
@@ -147,10 +139,10 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loginMutation.isPending}
               className="w-full py-2.5 px-4 bg-gradient-to-r from-uradi-gold to-uradi-gold-dark text-uradi-bg-primary font-semibold rounded-lg hover:from-uradi-gold-light hover:to-uradi-gold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-uradi-gold/20"
             >
-              {loading ? (
+              {loginMutation.isPending ? (
                 <span className="flex items-center justify-center gap-2">
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
