@@ -10,6 +10,14 @@ import type {
   LGA,
   Ward,
   PaginatedResponse,
+  OSINTSource,
+  OSINTMention,
+  OSINTAlert,
+  NarrativeCluster,
+  DailyBrief,
+  MentionFilters,
+  AlertFilters,
+  OSINTDashboardMetrics,
 } from '@/types';
 
 // Dashboard Hooks
@@ -343,5 +351,191 @@ export function useCitizenFeedback() {
   return useQuery({
     queryKey: ['governance', 'feedback'],
     queryFn: () => api.governance.feedback(),
+  });
+}
+
+// ==================== OSINT Hooks ====================
+
+// Sources
+export function useOSINTSources() {
+  return useQuery<OSINTSource[]>({
+    queryKey: ['osint', 'sources'],
+    queryFn: () => api.osint.sources(),
+    refetchInterval: 60000,
+  });
+}
+
+export function useCreateOSINTSource() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: Record<string, unknown>) => api.osint.createSource(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'sources'] });
+    },
+  });
+}
+
+export function useTestOSINTSource() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.osint.testSource(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'sources'] });
+    },
+  });
+}
+
+export function useFetchOSINTSource() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.osint.fetchSource(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'mentions'] });
+    },
+  });
+}
+
+// Mentions
+export function useOSINTMentions(filters: MentionFilters = {}) {
+  return useQuery<PaginatedResponse<OSINTMention>>({
+    queryKey: ['osint', 'mentions', filters],
+    queryFn: () => api.osint.mentions(filters),
+    refetchInterval: 30000,
+  });
+}
+
+export function useOSINTMention(id: string) {
+  return useQuery<OSINTMention>({
+    queryKey: ['osint', 'mentions', id],
+    queryFn: () => api.osint.getMention(id),
+    enabled: !!id,
+  });
+}
+
+export function useReprocessMention() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.osint.reprocessMention(id),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'mentions', id] });
+      queryClient.invalidateQueries({ queryKey: ['osint', 'mentions'] });
+    },
+  });
+}
+
+export function useSimilarMentions(id: string, limit = 10) {
+  return useQuery({
+    queryKey: ['osint', 'mentions', id, 'similar'],
+    queryFn: () => api.osint.getSimilarMentions(id, limit),
+    enabled: !!id,
+  });
+}
+
+// Search
+export function useOSINTSearch(query: string, limit = 20) {
+  return useQuery({
+    queryKey: ['osint', 'search', query, limit],
+    queryFn: () => api.osint.search(query, limit),
+    enabled: query.length > 2,
+  });
+}
+
+// Alerts
+export function useOSINTAlerts(filters: AlertFilters = {}) {
+  return useQuery<PaginatedResponse<OSINTAlert>>({
+    queryKey: ['osint', 'alerts', filters],
+    queryFn: () => api.osint.alerts(filters),
+    refetchInterval: 15000, // 15 seconds for real-time alerts
+  });
+}
+
+export function useOSINTAlert(id: string) {
+  return useQuery<OSINTAlert>({
+    queryKey: ['osint', 'alerts', id],
+    queryFn: () => api.osint.getAlert(id),
+    enabled: !!id,
+  });
+}
+
+export function useAcknowledgeAlert() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => api.osint.acknowledgeAlert(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'alerts'] });
+    },
+  });
+}
+
+export function useResolveAlert() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, notes }: { id: string; notes: string }) =>
+      api.osint.resolveAlert(id, notes),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'alerts'] });
+    },
+  });
+}
+
+// Briefs
+export function useDailyBriefs() {
+  return useQuery<DailyBrief[]>({
+    queryKey: ['osint', 'briefs'],
+    queryFn: () => api.osint.briefs(),
+  });
+}
+
+export function useDailyBrief(id: string) {
+  return useQuery<DailyBrief>({
+    queryKey: ['osint', 'briefs', id],
+    queryFn: () => api.osint.getBrief(id),
+    enabled: !!id,
+  });
+}
+
+export function useGenerateBrief() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (date?: string) => api.osint.generateBrief(date),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'briefs'] });
+    },
+  });
+}
+
+// Narratives
+export function useNarrativeClusters() {
+  return useQuery<NarrativeCluster[]>({
+    queryKey: ['osint', 'narratives'],
+    queryFn: () => api.osint.narratives(),
+    refetchInterval: 300000, // 5 minutes
+  });
+}
+
+export function useClusterNarratives() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (hoursBack = 24) => api.osint.clusterNarratives(hoursBack),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['osint', 'narratives'] });
+    },
+  });
+}
+
+// Dashboard Metrics
+export function useOSINTDashboardMetrics() {
+  return useQuery<OSINTDashboardMetrics>({
+    queryKey: ['osint', 'metrics', 'dashboard'],
+    queryFn: () => api.osint.dashboardMetrics(),
+    refetchInterval: 30000, // 30 seconds
   });
 }

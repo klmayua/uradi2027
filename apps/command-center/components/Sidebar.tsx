@@ -29,6 +29,7 @@ import {
   Shield,
   Wallet,
   MessageCircle,
+  Radio,
 } from 'lucide-react';
 
 interface NavSection {
@@ -56,6 +57,7 @@ const navigation: NavSection[] = [
       { name: 'Political Atlas', href: '/intelligence/political-atlas', icon: Network },
       { name: 'Scenarios', href: '/intelligence/scenarios', icon: Brain },
       { name: 'Coalition', href: '/intelligence/coalition', icon: Handshake },
+      { name: 'OSINT Center', href: '/intelligence/osint', icon: Radio },
     ],
   },
   {

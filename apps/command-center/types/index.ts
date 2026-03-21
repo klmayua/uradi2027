@@ -185,3 +185,193 @@ export interface SentimentFilters {
   score_min?: number;
   score_max?: number;
 }
+
+// ==================== OSINT Types ====================
+
+export type OSINTSourceType = 'news' | 'social' | 'government' | 'traditional' | 'custom';
+
+export interface OSINTSource {
+  id: string;
+  tenant_id: string;
+  name: string;
+  source_type: OSINTSourceType;
+  source_url?: string;
+  api_endpoint?: string;
+  config: Record<string, unknown>;
+  fetch_interval_minutes: number;
+  last_fetch_at?: string;
+  last_fetch_status: 'pending' | 'success' | 'failed';
+  last_error?: string;
+  is_active: boolean;
+  priority: number;
+  language_filter: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export type SentimentLabel = 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
+export type UrgencyLabel = 'low' | 'medium' | 'high' | 'critical';
+export type StanceLabel = 'opposing' | 'neutral' | 'supporting' | 'mixed';
+
+export interface OSINTMention {
+  id: string;
+  tenant_id: string;
+  source_id: string;
+  external_id?: string;
+  content_hash: string;
+  title?: string;
+  content?: string;
+  content_summary?: string;
+  url?: string;
+  author?: string;
+  author_handle?: string;
+  published_at: string;
+  collected_at: string;
+  language: string;
+  sentiment_score?: number;
+  sentiment_label?: SentimentLabel;
+  urgency_score?: number;
+  urgency_label?: UrgencyLabel;
+  stance_towards_candidate?: StanceLabel;
+  topics: string[];
+  entities_mentioned: Array<{
+    name: string;
+    type: string;
+    confidence: number;
+  }>;
+  lga_mentioned: string[];
+  engagement_metrics?: {
+    likes?: number;
+    shares?: number;
+    comments?: number;
+    total_engagement?: number;
+  };
+  ai_processed: boolean;
+  ai_processed_at?: string;
+  is_duplicate: boolean;
+  status: 'pending' | 'processed' | 'archived' | 'flagged';
+  flag_reason?: string;
+  // Joined fields
+  source?: OSINTSource;
+}
+
+export type AlertType = 'sentiment_crash' | 'volume_spike' | 'crisis_detected' | 'narrative_shift' | 'security_incident';
+export type AlertSeverity = 'low' | 'medium' | 'high' | 'critical';
+export type AlertStatus = 'open' | 'acknowledged' | 'resolved' | 'dismissed';
+
+export interface OSINTAlert {
+  id: string;
+  tenant_id: string;
+  alert_type: AlertType;
+  severity: AlertSeverity;
+  title: string;
+  description?: string;
+  triggered_by_mention_ids: string[];
+  affected_lgas: string[];
+  metrics_snapshot: Record<string, unknown>;
+  recommended_actions: string[];
+  status: AlertStatus;
+  acknowledged_by?: string;
+  acknowledged_at?: string;
+  resolved_by?: string;
+  resolved_at?: string;
+  resolution_notes?: string;
+  notification_sent_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NarrativeCluster {
+  id: string;
+  tenant_id: string;
+  cluster_label: string;
+  narrative_title?: string;
+  narrative_summary?: string;
+  key_themes: string[];
+  sentiment_trend: 'improving' | 'stable' | 'declining';
+  mention_count: number;
+  first_mention_at?: string;
+  last_mention_at?: string;
+  affected_lgas: string[];
+  representative_mention_ids: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DailyBrief {
+  id: string;
+  tenant_id: string;
+  brief_date: string;
+  period_start: string;
+  period_end: string;
+  total_mentions: number;
+  unique_sources: number;
+  avg_sentiment?: number;
+  sentiment_change?: number;
+  headline_summary?: string;
+  key_developments: Array<{
+    title: string;
+    description: string;
+    impact: 'high' | 'medium' | 'low';
+  }>;
+  top_narratives: Array<{
+    title: string;
+    mention_count: number;
+    sentiment_trend: string;
+  }>;
+  emerging_threats: string[];
+  opposition_activity: {
+    mention_count: number;
+    avg_sentiment: number;
+    top_topics: string[];
+  };
+  media_coverage_analysis: Record<string, unknown>;
+  top_performing_content: Array<{
+    title?: string;
+    content_preview?: string;
+    engagement: Record<string, number>;
+    sentiment: string;
+  }>;
+  influencer_mentions: Array<{
+    name: string;
+    mention_count: number;
+  }>;
+  strategic_recommendations: string[];
+  recommended_actions: string[];
+  status: 'draft' | 'generating' | 'ready' | 'sent';
+  generated_by: 'ai' | 'manual' | 'hybrid';
+  sent_at?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OSINTDashboardMetrics {
+  mentions_24h: number;
+  avg_sentiment_24h: number;
+  active_alerts: number;
+  active_sources: number;
+  generated_at: string;
+}
+
+export interface MentionFilters {
+  source_id?: string;
+  sentiment?: SentimentLabel;
+  urgency?: UrgencyLabel;
+  stance?: StanceLabel;
+  topic?: string;
+  lga?: string;
+  start_date?: string;
+  end_date?: string;
+  is_duplicate?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface AlertFilters {
+  status?: AlertStatus;
+  severity?: AlertSeverity;
+  alert_type?: AlertType;
+  page?: number;
+  limit?: number;
+}

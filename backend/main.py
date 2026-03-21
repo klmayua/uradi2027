@@ -16,6 +16,9 @@ from utils.logging_config import CorrelationIdMiddleware, configure_structlog, g
 from utils.health_checks import health_checker
 from slowapi.errors import RateLimitExceeded
 
+# Import middleware
+from middleware import tenant_middleware
+
 # Import routers
 from auth.routes import router as auth_router
 from tenants.routes import router as tenants_router
@@ -43,6 +46,10 @@ from api.payments import router as payments_router
 from api.public import router as public_router
 from api.ussd import router as ussd_router
 from api.compliance import router as compliance_router
+from api.osint import router as osint_router
+from api.exports import router as exports_router
+from api.admin import router as admin_router
+from api.users import router as users_api_router
 
 app = FastAPI(
     title="URADI-360 API",
@@ -56,6 +63,9 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Add correlation ID middleware for structured logging
 app.add_middleware(CorrelationIdMiddleware)
+
+# Add tenant middleware
+app.middleware("http")(tenant_middleware)
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
@@ -123,6 +133,10 @@ app.include_router(payments_router, prefix="/api")
 app.include_router(public_router, prefix="/api")
 app.include_router(ussd_router)
 app.include_router(compliance_router, prefix="/api")
+app.include_router(osint_router, prefix="/api")
+app.include_router(exports_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
+app.include_router(users_api_router, prefix="/api")
 
 @app.get("/")
 @limiter.limit("100/minute")

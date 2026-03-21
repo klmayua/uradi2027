@@ -1,0 +1,164 @@
+# CloudFlare WAF Rules for URADI-360
+# Security-first configuration for political platform
+
+zone: uradi360.com
+
+# Security Level: High
+security_level: high
+
+# SSL/TLS: Full (strict)
+ssl_mode: full_strict
+
+# Minimum TLS Version: 1.2
+min_tls_version: "1.2"
+
+# HSTS: Enabled
+hsts:
+  enabled: true
+  max_age: 31536000  # 1 year
+  include_subdomains: true
+  preload: true
+
+# Always Use HTTPS
+always_use_https: true
+
+# Automatic HTTPS Rewrites
+automatic_https_rewrites: true
+
+# Browser Integrity Check
+browser_integrity_check: true
+
+# Challenge Passage: 30 minutes
+challenge_ttl: 1800
+
+# =============================================================================
+# WAF RULES
+# =============================================================================
+
+firewall_rules:
+  # Rule 1: Block Known Bad Bots
+  - name: "Block Bad Bots"
+    expression: '(http.user_agent contains "bot") or (http.user_agent contains "crawler") or (http.user_agent contains "spider")'
+    action: block
+    priority: 1
+
+  # Rule 2: Rate Limit API
+  - name: "Rate Limit API"
+    expression: 'http.request.uri.path contains "/api/"'
+    action: challenge
+    rate_limit:
+      requests_per_period: 100
+      period: 60  # 60 seconds
+      mitigation_timeout: 300  # 5 minutes
+
+  # Rule 3: Block Access to Sensitive Paths
+  - name: "Block Sensitive Paths"
+    expression: '(http.request.uri.path contains "/.env") or (http.request.uri.path contains "/.git") or (http.request.uri.path contains "config.php") or (http.request.uri.path contains "wp-admin")'
+    action: block
+    priority: 2
+
+  # Rule 4: Block Countries Under Sanctions (if applicable)
+  - name: "Geo Block"
+    expression: '(ip.geoip.country in {"CN" "RU" "KP"})'
+    action: block
+    priority: 3
+
+  # Rule 5: Allow Nigerian IPs (priority access)
+  - name: "Allow Nigerian Traffic"
+    expression: '(ip.geoip.country eq "NG")'
+    action: skip
+    priority: 5
+
+  # Rule 6: Challenge Suspicious User Agents
+  - name: "Challenge Suspicious"
+    expression: '(http.user_agent contains "sqlmap") or (http.user_agent contains "nikto") or (http.user_agent contains "nmap")'
+    action: challenge
+    priority: 4
+
+# =============================================================================
+# PAGE RULES
+# =============================================================================
+
+page_rules:
+  # Rule 1: API - No Caching, Security
+  - url: "api.uradi360.com/*"
+    settings:
+      cache_level: bypass
+      security_level: high
+      ssl: full_strict
+
+  # Rule 2: Static Assets - Aggressive Caching
+  - url: "*uradi360.com/static/*"
+    settings:
+      cache_level: cache_everything
+      edge_cache_ttl: 2592000  # 30 days
+      browser_cache_ttl: 2592000
+
+  # Rule 3: Uploaded Files
+  - url: "*uradi360.com/uploads/*"
+    settings:
+      cache_level: cache_everything
+      edge_cache_ttl: 86400  # 1 day
+
+  # Rule 4: WebSocket connections
+  - url: "ws.uradi360.com/*"
+    settings:
+      cache_level: bypass
+
+# =============================================================================
+# DDoS PROTECTION
+# =============================================================================
+
+ddos_protection:
+  mode: high
+  sensitivity: high
+  action: challenge
+
+# =============================================================================
+# BOT MANAGEMENT
+# =============================================================================
+
+bot_management:
+  enable_js_detection: true
+  enable_machine_learning: true
+  fight_mode: true
+  categories:
+    - category: definitely_automated
+      action: block
+    - category: likely_automated
+      action: challenge
+    - category: verified_bots
+      action: allow
+
+# =============================================================================
+# IP ACCESS RULES (Whitelist/Blacklist)
+# =============================================================================
+
+ip_access_rules:
+  # Allow office IPs
+  - value: "{{OFFICE_IP_1}}"
+    mode: whitelist
+    notes: "Headquarters Office"
+
+  - value: "{{OFFICE_IP_2}}"
+    mode: whitelist
+    notes: "Backup Office"
+
+  # Allow VPS IPs
+  - value: "{{VPS_IP}}"
+    mode: whitelist
+    notes: "Production VPS"
+
+# =============================================================================
+# CUSTOM ERROR PAGES
+# =============================================================================
+
+custom_pages:
+  - type: waf_block
+    url: "https://uradi360.com/error-pages/waf-block.html"
+
+  - type: 500_errors
+    url: "https://uradi360.com/error-pages/server-error.html"
+
+  - type: ip_block
+    url: "https://uradi360.com/error-pages/access-denied.html"

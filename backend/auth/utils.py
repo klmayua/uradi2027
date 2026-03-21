@@ -7,9 +7,20 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 import hashlib
+import secrets
 
-# Secret key for JWT encoding/decoding
-SECRET_KEY = os.getenv("JWT_SECRET", "my_secret_key_that_is_at_least_64_characters_long_for_security_purposes")
+# Secret key for JWT encoding/decoding - MUST be set in environment
+SECRET_KEY = os.getenv("JWT_SECRET")
+if not SECRET_KEY:
+    # Generate a secure random key if not provided (will invalidate existing tokens on restart)
+    # In production, JWT_SECRET must be set to a persistent value
+    import warnings
+    warnings.warn(
+        "JWT_SECRET environment variable not set! Using temporary random key. "
+        "Existing tokens will be invalidated on restart. Set JWT_SECRET for production.",
+        RuntimeWarning
+    )
+    SECRET_KEY = secrets.token_urlsafe(64)
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 EXPIRY_HOURS = int(os.getenv("JWT_EXPIRY_HOURS", 24))
 

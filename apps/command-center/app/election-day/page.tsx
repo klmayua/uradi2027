@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AlertTriangle, Users, MapPin, TrendingUp, Activity } from 'lucide-react';
 import { useElectionDayDashboard, useElectionResults } from '@/hooks/useElectionDay';
 import { useIncidents } from '@/hooks/useIncidents';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TouchButton } from '@/components/ui/ResponsiveTable';
 import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
@@ -20,7 +20,7 @@ function ElectionDayDashboard() {
     limit: 5,
   });
   const { data: incidents, isLoading: incidentsLoading } = useIncidents({
-    status: 'open',
+    status: 'reported',
     limit: 5,
   });
 
@@ -28,7 +28,7 @@ function ElectionDayDashboard() {
     return <LoadingSkeleton type="dashboard" />;
   }
 
-  const stats = dashboard?.data;
+  const stats = dashboard;
 
   return (
     <div className="space-y-6">
@@ -144,7 +144,7 @@ function ElectionDayDashboard() {
           <CardContent>
             {resultsLoading ? (
               <LoadingSkeleton type="list" count={3} />
-            ) : results?.data?.items?.length === 0 ? (
+            ) : results?.length === 0 ? (
               <div className="text-center py-8 text-uradi-text-tertiary">
                 <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>No results submitted yet</p>
@@ -159,7 +159,7 @@ function ElectionDayDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {results?.data?.items?.map((result: any) => (
+                {results?.items?.map((result: any) => (
                   <div
                     key={result.id}
                     className="flex items-center justify-between p-3 bg-uradi-bg-tertiary rounded-lg"
@@ -200,7 +200,7 @@ function ElectionDayDashboard() {
           <CardContent>
             {incidentsLoading ? (
               <LoadingSkeleton type="list" count={3} />
-            ) : incidents?.data?.items?.length === 0 ? (
+            ) : incidents?.items?.length === 0 ? (
               <div className="text-center py-8 text-uradi-text-tertiary">
                 <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p>No incidents reported</p>
@@ -208,7 +208,7 @@ function ElectionDayDashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {incidents?.data?.items?.map((incident: any) => (
+                {incidents?.items?.map((incident: any) => (
                   <div
                     key={incident.id}
                     className="flex items-start gap-3 p-3 bg-uradi-bg-tertiary rounded-lg"

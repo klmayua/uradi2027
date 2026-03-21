@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+import secrets
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from database import DATABASE_URL
@@ -14,7 +15,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 def seed_database():
     """Seed the database with initial data for Jigawa tenant"""
     db = SessionLocal()
-    
+
     try:
         # Check if tenant already exists
         existing_tenant = db.query(Tenant).filter(Tenant.id == "jigawa_lamido_2027").first()
@@ -33,23 +34,23 @@ def seed_database():
                 config={},
                 status="active"
             )
-            
+
             db.add(jigawa_tenant)
             db.commit()
             print("Created Jigawa tenant")
-        
+
         # List of LGAs in Jigawa State
         jigawa_lgas = [
             "Babura", "Birnin Kudu", "Buji", "Dutse", "Gagarawa", "Garki", "Gumel",
-            "Gwiwa", "Hadejia", "Jahun", "Kafin Hausa", "Kaugama", "Kazaure", 
-            "Kiri Kasamma", "Kiyawa", "Maigatari", "Malam Maduri", "Miga", 
-            "Ringim", "Roni", "Sule Tankarkar", "Taura", "Yankwashi", 
+            "Gwiwa", "Hadejia", "Jahun", "Kafin Hausa", "Kaugama", "Kazaure",
+            "Kiri Kasamma", "Kiyawa", "Maigatari", "Malam Maduri", "Miga",
+            "Ringim", "Roni", "Sule Tankarkar", "Taura", "Yankwashi",
             "Jigawa", "Kafin Kauri", "Kazurawa", "Machina"
         ]
-        
+
         # Get the tenant
         tenant = db.query(Tenant).filter(Tenant.id == "jigawa_lamido_2027").first()
-        
+
         # Create LGAs for Jigawa tenant if they don't exist
         existing_lgas = db.query(LGA).filter(LGA.tenant_id == "jigawa_lamido_2027").count()
         if existing_lgas == 0:
@@ -63,15 +64,17 @@ def seed_database():
                     geo_json={}    # Will be updated with real data later
                 )
                 db.add(lga)
-            
+
             db.commit()
             print(f"Created {len(jigawa_lgas)} LGAs for Jigawa tenant")
         else:
             print("LGAs already exist for Jigawa tenant")
-        
+
         # Create admin user if it doesn't exist
         admin_user = db.query(User).filter(User.email == "admin@uradi360.com").first()
         if not admin_user:
+            # Generate secure random password
+            admin_password = secrets.token_urlsafe(16)
             admin_user = User(
                 id=uuid.uuid4(),
                 tenant_id="jigawa_lamido_2027",
@@ -79,18 +82,20 @@ def seed_database():
                 full_name="System Administrator",
                 phone="+2348012345678",
                 role="admin",
-                password_hash=hash_password("AdminPass123!"),
+                password_hash=hash_password(admin_password),
                 assigned_lga=None,
                 active=True
             )
             db.add(admin_user)
             db.commit()
-            print("Created admin user")
+            print(f"Created admin user")
+            print(f"IMPORTANT: Admin password is: {admin_password}")
+            print("Please save this password and change it after first login!")
         else:
             print("Admin user already exists")
-        
+
         print("Database seeding completed successfully!")
-        
+
     except Exception as e:
         print(f"Error seeding database: {e}")
         db.rollback()

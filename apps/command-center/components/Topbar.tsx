@@ -2,19 +2,73 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Bell, ChevronDown, LogOut, Settings, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Bell, ChevronDown, LogOut, Settings, User, Loader2 } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
 
 interface TopbarProps {
   currentTenant?: 'jigawa' | 'kano';
   onTenantChange?: (tenant: 'jigawa' | 'kano') => void;
 }
 
+// Helper to get initials from full name
+function getInitials(fullName: string): string {
+  if (!fullName) return '??';
+  const parts = fullName.split(' ').filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Helper to format role for display
+function formatRole(role: string): string {
+  if (!role) return 'Unknown';
+  return role
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export default function Topbar({ currentTenant = 'jigawa', onTenantChange }: TopbarProps) {
+  const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [tenantMenuOpen, setTenantMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Get user from auth store
+  const { user, logout, isAuthenticated } = useAuthStore();
 
   const tenantName = currentTenant === 'jigawa' ? 'Jigawa' : 'Kano';
   const tenantLgaCount = currentTenant === 'jigawa' ? 27 : 44;
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      router.push('/login');
+    } finally {
+      setIsLoggingOut(false);
+      setUserMenuOpen(false);
+    }
+  };
+
+  // If user is not loaded yet, show minimal state
+  if (!user || !isAuthenticated) {
+    return (
+      <div className="relative z-10 flex-shrink-0 flex h-14 bg-uradi-bg-secondary border-b border-uradi-border">
+        <div className="flex-1 px-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <span className="text-uradi-text-secondary text-sm">Command Center</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Loader2 className="h-5 w-5 animate-spin text-uradi-text-tertiary" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const userInitials = getInitials(user.full_name);
+  const displayRole = formatRole(user.role);
 
   return (
     <div className="relative z-10 flex-shrink-0 flex h-14 bg-uradi-bg-secondary border-b border-uradi-border">
@@ -104,9 +158,9 @@ export default function Topbar({ currentTenant = 'jigawa', onTenantChange }: Top
             >
               <span className="sr-only">Open user menu</span>
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-uradi-gold to-uradi-gold-dark flex items-center justify-center text-uradi-bg-primary font-semibold text-sm">
-                AU
+                {userInitials}
               </div>
-              <span className="hidden md:block text-uradi-text-primary font-medium">Admin User</span>
+              <span className="hidden md:block text-uradi-text-primary font-medium">{user.full_name}</span>
               <ChevronDown className="hidden md:block h-4 w-4 text-uradi-text-secondary" />
             </button>
 
@@ -114,13 +168,14 @@ export default function Topbar({ currentTenant = 'jigawa', onTenantChange }: Top
             {userMenuOpen && (
               <div className="absolute right-0 mt-2 w-56 rounded-lg shadow-xl py-1 bg-uradi-bg-secondary border border-uradi-border">
                 <div className="px-4 py-3 border-b border-uradi-border">
-                  <p className="text-sm font-medium text-uradi-text-primary">Admin User</p>
-                  <p className="text-xs text-uradi-text-secondary">admin@uradi360.com</p>
-                  <p className="text-xs text-uradi-gold mt-1">Super Admin</p>
+                  <p className="text-sm font-medium text-uradi-text-primary">{user.full_name}</p>
+                  <p className="text-xs text-uradi-text-secondary">{user.email}</p>
+                  <p className="text-xs text-uradi-gold mt-1">{displayRole}</p>
                 </div>
                 <div className="py-1">
                   <Link
                     href="/settings"
+                    onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-uradi-text-secondary hover:text-uradi-text-primary hover:bg-uradi-bg-tertiary transition-colors"
                   >
                     <Settings className="h-4 w-4" />
@@ -128,6 +183,7 @@ export default function Topbar({ currentTenant = 'jigawa', onTenantChange }: Top
                   </Link>
                   <Link
                     href="/profile"
+                    onClick={() => setUserMenuOpen(false)}
                     className="flex items-center gap-2 px-4 py-2 text-sm text-uradi-text-secondary hover:text-uradi-text-primary hover:bg-uradi-bg-tertiary transition-colors"
                   >
                     <User className="h-4 w-4" />
@@ -135,9 +191,17 @@ export default function Topbar({ currentTenant = 'jigawa', onTenantChange }: Top
                   </Link>
                 </div>
                 <div className="border-t border-uradi-border py-1">
-                  <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-uradi-status-critical hover:bg-uradi-bg-tertiary transition-colors">
-                    <LogOut className="h-4 w-4" />
-                    Sign out
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-uradi-status-critical hover:bg-uradi-bg-tertiary transition-colors disabled:opacity-50"
+                  >
+                    {isLoggingOut ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <LogOut className="h-4 w-4" />
+                    )}
+                    {isLoggingOut ? 'Signing out...' : 'Sign out'}
                   </button>
                 </div>
               </div>

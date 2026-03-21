@@ -24,6 +24,9 @@ import {
   Building2,
   Settings,
   ArrowRight,
+  Radio,
+  AlertTriangle,
+  TrendingUp,
 } from 'lucide-react';
 import { useUIStore } from '@/stores/uiStore';
 
@@ -43,6 +46,10 @@ const pages: SearchItem[] = [
   { id: 'political-atlas', name: 'Political Atlas', type: 'page', href: '/intelligence/political-atlas', icon: MapPin },
   { id: 'scenarios', name: 'Scenarios', type: 'page', href: '/intelligence/scenarios', icon: Brain },
   { id: 'coalition', name: 'Coalition', type: 'page', href: '/intelligence/coalition', icon: Building2 },
+  { id: 'osint', name: 'OSINT Intelligence Center', type: 'page', href: '/intelligence/osint', icon: Radio },
+  { id: 'osint-mentions', name: 'OSINT Mentions', type: 'page', href: '/intelligence/osint/mentions', icon: FileText },
+  { id: 'osint-alerts', name: 'OSINT Alerts', type: 'page', href: '/intelligence/osint/alerts', icon: AlertTriangle },
+  { id: 'osint-briefs', name: 'Daily Briefs', type: 'page', href: '/intelligence/osint/briefs', icon: TrendingUp },
   { id: 'scorecards', name: 'Scorecards', type: 'page', href: '/narrative/scorecards', icon: FileText },
   { id: 'content', name: 'Content', type: 'page', href: '/narrative/content', icon: Megaphone },
   { id: 'messaging', name: 'Messaging', type: 'page', href: '/narrative/messaging', icon: Megaphone },

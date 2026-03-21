@@ -1,0 +1,121 @@
+# CloudFlare DNS Records for URADI-360
+# Import using: cloudflare-go or manually configure in dashboard
+
+zone: uradi360.com
+records:
+  # Root domain - Points to Vercel (for landing page)
+  - name: "@"
+    type: A
+    value: 76.76.21.21  # Vercel anycast
+    ttl: 1
+    proxied: true
+
+  - name: "@"
+    type: AAAA
+    value: "::ffff:4c4c:1515"
+    ttl: 1
+    proxied: true
+
+  # API Server - Points to VPS
+  - name: api
+    type: A
+    value: "{{VPS_IP}}"  # Replace with actual VPS IP
+    ttl: 1
+    proxied: true
+
+  # WebSocket server - Points to VPS
+  - name: ws
+    type: A
+    value: "{{VPS_IP}}"
+    ttl: 1
+    proxied: true
+
+  # Command Center (Admin Dashboard) - Vercel
+  - name: app
+    type: CNAME
+    value: cname.vercel-dns.com
+    ttl: 1
+    proxied: true
+
+  # Citizen Portal (White-labeled campaign sites) - Vercel
+  - name: campaign
+    type: CNAME
+    value: cname.vercel-dns.com
+    ttl: 1
+    proxied: true
+
+  # Supabase - Direct connection
+  - name: db
+    type: CNAME
+    value: "{{SUPABASE_PROJECT_REF}}.supabase.co"
+    ttl: 1
+    proxied: false
+
+  # Email (Google Workspace / MX)
+  - name: "@"
+    type: MX
+    value: "{{MX_RECORD_1}}"
+    priority: 1
+    ttl: 3600
+
+  - name: "@"
+    type: MX
+    value: "{{MX_RECORD_2}}"
+    priority: 5
+    ttl: 3600
+
+  # SPF Record
+  - name: "@"
+    type: TXT
+    value: "v=spf1 include:_spf.google.com include:sendgrid.net ~all"
+    ttl: 3600
+
+  # DMARC Record
+  - name: _dmarc
+    type: TXT
+    value: "v=DMARC1; p=quarantine; rua=mailto:dmarc@uradi360.com; ruf=mailto:dmarc@uradi360.com; fo=1"
+    ttl: 3600
+
+  # DKIM (SendGrid)
+  - name: s1._domainkey
+    type: CNAME
+    value: s1.domainkey.u123456.w123.sendgrid.net
+    ttl: 3600
+
+  - name: s2._domainkey
+    type: CNAME
+    value: s2.domainkey.u123456.w123.sendgrid.net
+    ttl: 3600
+
+  # API Documentation (Swagger/OpenAPI)
+  - name: docs
+    type: CNAME
+    value: cname.vercel-dns.com
+    ttl: 1
+    proxied: true
+
+  # Status Page
+  - name: status
+    type: CNAME
+    value: uradi360.statuspage.io
+    ttl: 3600
+
+  # CDN for assets
+  - name: cdn
+    type: CNAME
+    value: cdn.uradi360.com
+    ttl: 1
+    proxied: true
+
+  # Development/Staging
+  - name: staging
+    type: CNAME
+    value: cname.vercel-dns.com
+    ttl: 1
+    proxied: true
+
+  - name: api-staging
+    type: A
+    value: "{{STAGING_VPS_IP}}"
+    ttl: 1
+    proxied: true

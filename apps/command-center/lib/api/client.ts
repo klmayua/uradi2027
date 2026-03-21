@@ -11,21 +11,41 @@ export interface ApiResponse<T> {
   success: boolean;
 }
 
-export async function fetchApi<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const defaultHeaders: HeadersInit = {
+// Helper to get auth headers with tenant
+function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
 
   // Add auth token if available
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   if (token) {
-    defaultHeaders["Authorization"] = `Bearer ${token}`;
+    headers["Authorization"] = `Bearer ${token}`;
   }
+
+  // Add tenant ID if available
+  const tenantStorage = typeof window !== "undefined" ? localStorage.getItem("tenant-storage") : null;
+  if (tenantStorage) {
+    try {
+      const tenant = JSON.parse(tenantStorage);
+      if (tenant.currentTenant?.id) {
+        headers["X-Tenant-ID"] = tenant.currentTenant.id;
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  return headers;
+}
+
+export async function fetchApi<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<ApiResponse<T>> {
+  const url = `${API_BASE_URL}${endpoint}`;
+
+  const defaultHeaders = getAuthHeaders();
 
   try {
     const response = await fetch(url, {
@@ -37,10 +57,17 @@ export async function fetchApi<T>(
     });
 
     if (!response.ok) {
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        // Could redirect to login here
+      }
+
       const errorData = await response.json().catch(() => ({}));
       return {
         success: false,
-        error: errorData.detail || `HTTP error! status: ${response.status}`,
+        error: errorData.detail || errorData.message || `HTTP error! status: ${response.status}`,
       };
     }
 

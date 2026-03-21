@@ -1,0 +1,379 @@
+# URADI-360 Monitoring Stack Configuration
+# Sentry + Grafana + Custom Alerts
+
+# =============================================================================
+# SENTRY PROJECT CONFIGURATION
+# =============================================================================
+
+sentry:
+  organization: uradi360
+  project: platform
+  platform: python
+
+  # Alert Rules
+  alerts:
+    # High Priority: Production Errors
+    - name: "Production Errors"
+      conditions:
+        - event_frequency:
+            interval: 5m
+            value: 10
+      actions:
+        - send_notification:
+            channel: slack
+            channel_name: "#alerts-critical"
+
+    # Critical: Database Connection Errors
+    - name: "Database Errors"
+      conditions:
+        - event_frequency:
+            interval: 1m
+            value: 1
+          filters:
+            - error_type: "DatabaseError"
+      actions:
+        - send_notification:
+            channel: slack
+            channel_name: "#alerts-critical"
+        - send_notification:
+            channel: email
+            to: ["ops@uradi360.com", "tech-lead@uradi360.com"]
+
+    # API Latency
+    - name: "API Latency Spike"
+      conditions:
+        - metric:
+            name: "transaction.duration"
+            threshold: 2000  # 2 seconds
+            operator: greater_than
+      actions:
+        - send_notification:
+            channel: slack
+            channel_name: "#alerts-warning"
+
+  # Performance Monitoring
+  performance:
+    sample_rate: 0.1  # 10% of transactions
+    auto_instrument: true
+    profiling:
+      enabled: true
+      sample_rate: 0.01
+
+  # Release Tracking
+  releases:
+    auto_associate: true
+
+# =============================================================================
+# GRAFANA DASHBOARDS
+# =============================================================================
+
+grafana:
+  # Data Sources
+  datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus:9090
+      is_default: true
+
+    - name: PostgreSQL
+      type: postgres
+      url: ${SUPABASE_HOST}:5432
+      database: postgres
+      user: ${SUPABASE_USER}
+      secure_json_data:
+        password: ${SUPABASE_PASSWORD}
+
+    - name: Redis
+      type: redis-datasource
+      url: redis:6379
+
+  # Dashboards
+  dashboards:
+    - name: "URADI-360 System Overview"
+      uid: system-overview
+      panels:
+        - title: "API Request Rate"
+          type: graph
+          targets:
+            - expr: 'rate(http_requests_total[5m])'
+
+        - title: "Response Time (95th percentile)"
+          type: graph
+          targets:
+            - expr: 'histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))'
+
+        - title: "Error Rate"
+          type: graph
+          targets:
+            - expr: 'rate(http_requests_total{status=~"5.."}[5m])'
+
+        - title: "Active Users"
+          type: stat
+          targets:
+            - expr: 'active_users_count'
+
+        - title: "Database Connections"
+          type: graph
+          targets:
+            - expr: 'pg_stat_activity_count'
+
+        - title: "Redis Memory Usage"
+          type: graph
+          targets:
+            - expr: 'redis_memory_used_bytes'
+
+    - name: "OSINT Monitoring"
+      uid: osint-dashboard
+      panels:
+        - title: "Mentions Per Hour"
+          type: graph
+          targets:
+            - expr: 'osint_mentions_per_hour'
+
+        - title: "Sentiment Distribution"
+          type: pie
+          targets:
+            - expr: 'osint_sentiment_distribution'
+
+        - title: "Alerts by Severity"
+          type: bar
+          targets:
+            - expr: 'osint_alerts_by_severity'
+
+        - title: "Top Mentioning Sources"
+          type: table
+          targets:
+            - expr: 'topk(10, osint_source_mentions)'
+
+    - name: "Field Operations"
+      uid: field-ops
+      panels:
+        - title: "Active Agents"
+          type: stat
+          targets:
+            - expr: 'field_agents_active_count'
+
+        - title: "Daily Contacts"
+          type: graph
+          targets:
+            - expr: 'voter_contacts_per_day'
+
+        - title: "GPS Tracking Status"
+          type: map
+          targets:
+            - expr: 'field_agent_locations'
+
+# =============================================================================
+# ALERT MANAGER CONFIGURATION
+# =============================================================================
+
+alertmanager:
+  receivers:
+    - name: "slack-critical"
+      slack_configs:
+        - api_url: "${SLACK_WEBHOOK_URL}"
+          channel: "#alerts-critical"
+          title: "🚨 URADI-360 Alert"
+          text: "{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}"
+
+    - name: "slack-warning"
+      slack_configs:
+        - api_url: "${SLACK_WEBHOOK_URL}"
+          channel: "#alerts-warning"
+          title: "⚠️ URADI-360 Warning"
+
+    - name: "pagerduty"
+      pagerduty_configs:
+        - service_key: "${PAGERDUTY_KEY}"
+
+    - name: "email"
+      email_configs:
+        - to: "ops@uradi360.com"
+          from: "alerts@uradi360.com"
+          smarthost: "smtp.sendgrid.net:587"
+          auth_username: "apikey"
+          auth_password: "${SENDGRID_API_KEY}"
+
+  routes:
+    - match:
+        severity: critical
+      receiver: slack-critical
+      group_wait: 0s
+      repeat_interval: 5m
+
+    - match:
+        severity: warning
+      receiver: slack-warning
+      repeat_interval: 30m
+
+    - match:
+        severity: info
+      receiver: slack-warning
+      repeat_interval: 1h
+
+# =============================================================================
+# CUSTOM ALERTS
+# =============================================================================
+
+custom_alerts:
+  # Health check failure
+  - name: HealthCheckFailed
+    expr: 'up{job="uradi360"} == 0'
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "URADI-360 health check failed"
+      description: "The application has been down for more than 1 minute"
+
+  # High CPU usage
+  - name: HighCPUUsage
+    expr: '100 - (avg(irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80'
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High CPU usage detected"
+      description: "CPU usage is above 80% for more than 5 minutes"
+
+  # High memory usage
+  - name: HighMemoryUsage
+    expr: '(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 85'
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage detected"
+      description: "Memory usage is above 85% for more than 5 minutes"
+
+  # Disk space running low
+  - name: LowDiskSpace
+    expr: 'node_filesystem_avail_bytes / node_filesystem_size_bytes * 100 < 10'
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Low disk space"
+      description: "Less than 10% disk space remaining"
+
+  # Database connection pool exhausted
+  - name: DBConnectionPoolExhausted
+    expr: 'database_connections_active / database_connections_max > 0.9'
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Database connection pool nearly exhausted"
+      description: "90% of database connections are in use"
+
+  # Celery queue backlog
+  - name: CeleryQueueBacklog
+    expr: 'celery_queue_length > 1000'
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Celery queue backlog"
+      description: "Celery queue has more than 1000 pending tasks"
+
+  # API error rate spike
+  - name: APIErrorRateSpike
+    expr: 'rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05'
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "API error rate spike"
+      description: "Error rate is above 5%"
+
+  # OSINT scraper failures
+  - name: OSINTScraperFailures
+    expr: 'increase(osint_scraper_errors_total[10m]) > 5'
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "OSINT scraper failures"
+      description: "Multiple OSINT scraper failures in the last 10 minutes"
+
+# =============================================================================
+# LOGGING
+# =============================================================================
+
+logging:
+  # Application logs
+  application:
+    level: INFO
+    format: json
+    output:
+      - type: file
+        path: /var/log/uradi360/app.log
+        rotation: daily
+        retention: 30d
+      - type: loki
+        url: http://loki:3100
+
+  # Access logs
+  access:
+    format: combined
+    output:
+      - type: file
+        path: /var/log/nginx/access.log
+      - type: loki
+        url: http://loki:3100
+
+  # Audit logs
+  audit:
+    level: INFO
+    format: json
+    output:
+      - type: file
+        path: /var/log/uradi360/audit.log
+        rotation: daily
+        retention: 90d
+      - type: s3
+        bucket: uradi360-audit-logs
+        region: af-south-1
+
+# =============================================================================
+# UPTIME MONITORING
+# =============================================================================
+
+uptime:
+  checks:
+    - name: API Health
+      url: https://api.uradi360.com/health
+      interval: 60s
+      timeout: 10s
+      expected_status: 200
+
+    - name: Command Center
+      url: https://app.uradi360.com
+      interval: 120s
+      timeout: 10s
+      expected_status: 200
+
+    - name: Citizen Portal
+      url: https://campaign.uradi360.com
+      interval: 120s
+      timeout: 10s
+      expected_status: 200
+
+    - name: Database
+      type: postgres
+      connection: ${DATABASE_URL}
+      interval: 60s
+      query: "SELECT 1"
+
+    - name: Redis
+      type: redis
+      host: redis
+      port: 6379
+      interval: 60s
+
+  notifications:
+    on_down:
+      - slack: "#alerts-critical"
+      - email: "ops@uradi360.com"
+    on_recovery:
+      - slack: "#alerts-info"

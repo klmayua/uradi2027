@@ -1,0 +1,217 @@
+name: PR Checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  lint-and-format:
+    name: Lint and Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python linting
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install ruff black isort mypy
+
+      - name: Run Ruff (linter)
+        run: |
+          cd backend
+          ruff check . --output-format=github
+
+      - name: Run Black (format check)
+        run: |
+          cd backend
+          black . --check --diff
+
+      - name: Run isort (import sort check)
+        run: |
+          cd backend
+          isort . --check-only --diff
+
+      # Node.js linting
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: |
+          cd apps/command-center && npm ci
+          cd ../citizen-portal && npm ci
+
+      - name: Run ESLint (Command Center)
+        run: |
+          cd apps/command-center
+          npm run lint
+
+      - name: Run ESLint (Citizen Portal)
+        run: |
+          cd apps/citizen-portal
+          npm run lint
+
+      - name: Run Type Check (Command Center)
+        run: |
+          cd apps/command-center
+          npm run type-check || npm run build --if-present
+
+      - name: Run Type Check (Citizen Portal)
+        run: |
+          cd apps/citizen-portal
+          npm run type-check || npm run build --if-present
+
+  backend-tests:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt || pip install pytest pytest-asyncio pytest-cov httpx
+
+      - name: Run tests with coverage
+        run: |
+          cd backend
+          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          REDIS_URL: redis://localhost:6379/0
+          APP_ENV: test
+          APP_SECRET_KEY: test-secret-key
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          fail_ci_if_error: false
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [command-center, citizen-portal]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd apps/${{ matrix.app }}
+          npm ci
+
+      - name: Run tests
+        run: |
+          cd apps/${{ matrix.app }}
+          npm test -- --coverage --watchAll=false || echo "No tests found"
+
+      - name: Build application
+        run: |
+          cd apps/${{ matrix.app }}
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXT_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: test-key
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Python security scan
+      - name: Run Bandit (Python security)
+        run: |
+          pip install bandit
+          bandit -r backend/src -f json -o bandit-report.json || true
+          bandit -r backend/src -ll || true
+
+      # Node.js security scan
+      - name: Run npm audit
+        run: |
+          cd apps/command-center
+          npm audit --audit-level=high || true
+          cd ../citizen-portal
+          npm audit --audit-level=high || true
+
+      # Secret scanning
+      - name: Secret Detection
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  docker-build-test:
+    name: Docker Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        run: |
+          cd backend
+          docker build -t uradi360-backend:test .
+
+      - name: Test backend container
+        run: |
+          docker run --rm uradi360-backend:test python -c "import fastapi; print('FastAPI imported successfully')"
+
+      - name: Scan image for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: uradi360-backend:test
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'

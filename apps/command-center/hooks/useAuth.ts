@@ -169,6 +169,16 @@ export function useForgotPassword() {
 }
 
 /**
+ * Reset password mutation (with token)
+ */
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: ({ token, newPassword }: { token: string; newPassword: string }) =>
+      authApi.resetPassword(token, newPassword),
+  });
+}
+
+/**
  * Change password mutation
  */
 export function useChangePassword() {

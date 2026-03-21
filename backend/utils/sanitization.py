@@ -264,3 +264,73 @@ def sanitize_vin(vin: Optional[str]) -> Optional[str]:
         return None
 
     return cleaned
+
+
+def sanitize_text(text: Optional[str]) -> Optional[str]:
+    """
+    General text sanitization for OSINT content.
+    Removes HTML and NoSQL injection patterns.
+    """
+    if not text:
+        return text
+
+    text = sanitize_no_sql(text)
+    text = sanitize_plain_text(text)
+    return text
+
+
+def sanitize_url(url: Optional[str]) -> Optional[str]:
+    """
+    Sanitize URL to prevent injection.
+    Validates URL format and removes dangerous characters.
+    """
+    if not url:
+        return url
+
+    from urllib.parse import urlparse
+
+    # Remove dangerous characters
+    cleaned = re.sub(r'[<>"{}|\\^\[\]`]', '', url)
+
+    # Validate URL format
+    try:
+        parsed = urlparse(cleaned)
+        if not parsed.scheme in ('http', 'https'):
+            return None
+        if not parsed.netloc:
+            return None
+    except:
+        return None
+
+    return cleaned[:2000]  # Limit length
+
+
+def sanitize_json(data: Optional[dict]) -> Optional[dict]:
+    """
+    Sanitize JSON data by sanitizing all string values.
+    Recursively processes nested dictionaries and lists.
+    """
+    if not data:
+        return data
+
+    if isinstance(data, dict):
+        sanitized = {}
+        for key, value in data.items():
+            # Sanitize key
+            clean_key = sanitize_json_key(key)
+            # Recursively sanitize value
+            if isinstance(value, str):
+                sanitized[clean_key] = sanitize_text(value)
+            elif isinstance(value, dict):
+                sanitized[clean_key] = sanitize_json(value)
+            elif isinstance(value, list):
+                sanitized[clean_key] = [
+                    sanitize_json(item) if isinstance(item, dict) else
+                    sanitize_text(item) if isinstance(item, str) else item
+                    for item in value
+                ]
+            else:
+                sanitized[clean_key] = value
+        return sanitized
+
+    return data

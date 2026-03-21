@@ -1,0 +1,93 @@
+name: Deploy Frontends to Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/command-center/**'
+      - 'apps/citizen-portal/**'
+  workflow_dispatch:
+
+jobs:
+  build-command-center:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd apps/command-center
+          npm ci
+
+      - name: Build
+        run: |
+          cd apps/command-center
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.uradi360.com
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Vercel (Command Center)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_COMMAND_CENTER_PROJECT_ID }}
+          working-directory: ./apps/command-center
+          vercel-args: '--prod'
+
+  build-citizen-portal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd apps/citizen-portal
+          npm ci
+
+      - name: Build
+        run: |
+          cd apps/citizen-portal
+          npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://api.uradi360.com
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Deploy to Vercel (Citizen Portal)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_CITIZEN_PORTAL_PROJECT_ID }}
+          working-directory: ./apps/citizen-portal
+          vercel-args: '--prod'
+
+  notify:
+    needs: [build-command-center, build-citizen-portal]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "${{ contains(needs.*.result, 'failure') && '🚨 Frontend deployment failed' || '✅ Frontend deployed successfully' }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

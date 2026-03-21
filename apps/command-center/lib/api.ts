@@ -245,6 +245,81 @@ export const governanceApi = {
   security: () => fetchApi('/api/governance/security'),
 };
 
+// OSINT API
+export const osintApi = {
+  // Sources
+  sources: () => fetchApi('/api/osint/sources'),
+  createSource: (data: Record<string, unknown>) =>
+    fetchApi('/api/osint/sources', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  testSource: (id: string) =>
+    fetchApi(`/api/osint/sources/${id}/test`, { method: 'POST' }),
+  fetchSource: (id: string) =>
+    fetchApi(`/api/osint/sources/${id}/fetch`, { method: 'POST' }),
+
+  // Mentions
+  mentions: (filters: Record<string, string | number | undefined> = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+    return fetchApi(`/api/osint/mentions?${params.toString()}`);
+  },
+  getMention: (id: string) => fetchApi(`/api/osint/mentions/${id}`),
+  reprocessMention: (id: string) =>
+    fetchApi(`/api/osint/mentions/${id}/reprocess`, { method: 'POST' }),
+  getSimilarMentions: (id: string, limit = 10) =>
+    fetchApi(`/api/osint/mentions/${id}/similar?limit=${limit}`),
+
+  // Search
+  search: (query: string, limit = 20) =>
+    fetchApi('/api/osint/search', {
+      method: 'POST',
+      body: JSON.stringify({ query, limit }),
+    }),
+
+  // Alerts
+  alerts: (filters: Record<string, string | number | undefined> = {}) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined) {
+        params.append(key, String(value));
+      }
+    });
+    return fetchApi(`/api/osint/alerts?${params.toString()}`);
+  },
+  getAlert: (id: string) => fetchApi(`/api/osint/alerts/${id}`),
+  acknowledgeAlert: (id: string) =>
+    fetchApi(`/api/osint/alerts/${id}/acknowledge`, { method: 'POST' }),
+  resolveAlert: (id: string, notes: string) =>
+    fetchApi(`/api/osint/alerts/${id}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ notes }),
+    }),
+
+  // Briefs
+  briefs: () => fetchApi('/api/osint/briefs'),
+  getBrief: (id: string) => fetchApi(`/api/osint/briefs/${id}`),
+  generateBrief: (date?: string) =>
+    fetchApi(`/api/osint/briefs/generate${date ? `?date=${date}` : ''}`, {
+      method: 'POST',
+    }),
+
+  // Narratives
+  narratives: () => fetchApi('/api/osint/narratives'),
+  clusterNarratives: (hoursBack = 24) =>
+    fetchApi(`/api/osint/narratives/cluster?hours_back=${hoursBack}`, {
+      method: 'POST',
+    }),
+
+  // Metrics
+  dashboardMetrics: () => fetchApi('/api/osint/metrics/dashboard'),
+};
+
 // Export all APIs
 export const api = {
   auth: authApi,
@@ -263,4 +338,5 @@ export const api = {
   intelligence: intelligenceApi,
   electionDay: electionDayApi,
   governance: governanceApi,
+  osint: osintApi,
 };
