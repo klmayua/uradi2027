@@ -1,0 +1,88 @@
+{
+  "expo": {
+    "name": "Uradi Monitor",
+    "slug": "uradi-monitor",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.uradi360.monitor",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to capture election evidence.",
+        "NSLocationWhenInUseUsageDescription": "This app uses location to verify polling unit proximity.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app tracks location during election monitoring.",
+        "NSPhotoLibraryUsageDescription": "This app accesses photos for evidence upload."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.uradi360.monitor",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Uradi Monitor to access your camera to capture election evidence."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Uradi Monitor to use your location to verify polling unit proximity."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Uradi Monitor to access your photos.",
+          "savePhotosPermission": "Allow Uradi Monitor to save photos.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ],
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "uradi-monitor"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/uradi-monitor",
+      "checkAutomatically": "ON_LOAD"
+    }
+  }
+}
