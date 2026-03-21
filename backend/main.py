@@ -21,6 +21,7 @@ from middleware import tenant_middleware
 
 # Import routers
 from auth.routes import router as auth_router
+from auth.oauth import router as oauth_router
 from tenants.routes import router as tenants_router
 from users.routes import router as users_router
 from api.political_actors import router as political_actors_router
@@ -106,6 +107,7 @@ if origins:
 # Include routers with rate limiting
 # Auth router - strict limits
 app.include_router(auth_router, prefix="/auth")
+app.include_router(oauth_router)
 
 # API routers - standard limits
 app.include_router(tenants_router, prefix="/api")

@@ -50,7 +50,7 @@ class Tenant(Base):
 
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id = Column(String, ForeignKey("tenants.id"))
     email = Column(String, unique=True, nullable=False)
@@ -62,7 +62,12 @@ class User(Base):
     active = Column(Boolean, default=True)
     last_login = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), default=func.now())
-    
+
+    # OAuth fields
+    oauth_provider = Column(String, nullable=True)  # 'google', 'facebook', etc.
+    oauth_id = Column(String, nullable=True)  # Provider's user ID
+    profile_picture = Column(String, nullable=True)  # URL to profile image
+
     tenant = relationship("Tenant")
 
 class LGA(Base):
