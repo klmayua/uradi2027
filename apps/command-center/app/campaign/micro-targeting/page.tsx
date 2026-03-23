@@ -1,7 +1,14 @@
 'use client';
 
+/**
+ * Campaign Micro-targeting - Sovereign Interface Design
+ * Precision voter targeting and outreach management
+ */
+
 import { useState } from 'react';
+import Link from 'next/link';
 import {
+  LayoutDashboard,
   Target,
   Users,
   MapPin,
@@ -9,604 +16,399 @@ import {
   Zap,
   Send,
   Plus,
-  MoreHorizontal,
   TrendingUp,
-  PieChart,
-  BarChart3,
+  ChevronRight,
+  Download,
+  Rocket,
+  Search,
   CheckCircle,
   AlertCircle,
-  Download,
-  Copy,
-  Trash2,
-  Edit3,
   Eye,
   Smartphone,
   MessageSquare,
-  ChevronRight,
+  Menu,
+  Shield,
+  Settings,
+  Globe,
+  Brain,
+  FileText,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 
-interface Segment {
-  id: string;
-  name: string;
-  description: string;
-  criteria: {
-    lgas: string[];
-    ageRange: string;
-    party: string[];
-    sentiment: string;
-    issues: string[];
-  };
-  size: number;
-  conversionRate: number;
-  status: 'active' | 'draft' | 'archived';
-  lastUpdated: string;
-}
-
-const mockSegments: Segment[] = [
+// Mock voter data
+const mockVoters = [
   {
-    id: '1',
-    name: 'Youth Swing Voters - Dutse',
-    description: 'Young voters aged 18-30 in Dutse LGA with neutral sentiment',
-    criteria: {
-      lgas: ['Dutse'],
-      ageRange: '18-30',
-      party: ['Undecided', 'NNPP'],
-      sentiment: 'neutral',
-      issues: ['Employment', 'Education'],
-    },
-    size: 12450,
-    conversionRate: 12.5,
-    status: 'active',
-    lastUpdated: '2 days ago',
+    id: 'VR-90221',
+    name: 'Kamsi Okoro',
+    initials: 'KO',
+    lga: 'Lagos Island',
+    ward: 'Ward 04',
+    sentiment: 88,
+    reach: 65,
   },
   {
-    id: '2',
-    name: 'Women Entrepreneurs',
-    description: 'Female business owners across all LGAs concerned with economic policy',
-    criteria: {
-      lgas: ['All'],
-      ageRange: '25-50',
-      party: ['PDP', 'APC', 'Undecided'],
-      sentiment: 'positive',
-      issues: ['Economy', 'Healthcare'],
-    },
-    size: 8930,
-    conversionRate: 18.2,
-    status: 'active',
-    lastUpdated: '1 week ago',
+    id: 'VR-81002',
+    name: 'Babatunde Musa',
+    initials: 'BM',
+    lga: 'Eti-Osa',
+    ward: 'Ward 01',
+    sentiment: 52,
+    reach: 20,
   },
   {
-    id: '3',
-    name: 'Rural Farmers - Hadejia',
-    description: 'Agricultural workers in Hadejia LGA focused on rural development',
-    criteria: {
-      lgas: ['Hadejia'],
-      ageRange: '30-60',
-      party: ['PDP', 'Undecided'],
-      sentiment: 'neutral',
-      issues: ['Agriculture', 'Infrastructure'],
-    },
-    size: 5670,
-    conversionRate: 8.7,
-    status: 'draft',
-    lastUpdated: '3 days ago',
+    id: 'VR-77291',
+    name: 'Aminu Yakubu',
+    initials: 'AY',
+    lga: 'Ikeja',
+    ward: 'Ward 09',
+    sentiment: 12,
+    reach: 5,
   },
   {
-    id: '4',
-    name: 'First-Time Voters',
-    description: 'Newly registered voters across all LGAs, high mobilization priority',
-    criteria: {
-      lgas: ['All'],
-      ageRange: '18-25',
-      party: ['All'],
-      sentiment: 'positive',
-      issues: ['Education', 'Employment'],
-    },
-    size: 22100,
-    conversionRate: 22.4,
-    status: 'active',
-    lastUpdated: '1 day ago',
+    id: 'VR-88011',
+    name: 'Sarah Chima',
+    initials: 'SC',
+    lga: 'Surulere',
+    ward: 'Ward 02',
+    sentiment: 91,
+    reach: 89,
   },
 ];
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'active': return <Badge variant="success">Active</Badge>;
-    case 'draft': return <Badge variant="warning">Draft</Badge>;
-    case 'archived': return <Badge variant="secondary">Archived</Badge>;
-    default: return <Badge variant="secondary">{status}</Badge>;
-  }
+const navItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', active: false },
+  { icon: Users, label: 'Voter Database', active: true },
+  { icon: Globe, label: 'Analytics', active: false },
+  { icon: MapPin, label: 'Campaign Maps', active: false },
+  { icon: FileText, label: 'Narrative', active: false },
+  { icon: Zap, label: 'Polling', active: false },
+  { icon: Shield, label: 'Security', active: false },
+];
+
+const getSentimentColor = (sentiment: number) => {
+  if (sentiment >= 70) return 'bg-[#50dfa4]';
+  if (sentiment >= 40) return 'bg-[#e5c466]';
+  return 'bg-[#ffb4ab]';
+};
+
+const getSentimentText = (sentiment: number) => {
+  if (sentiment >= 70) return 'text-[#50dfa4]';
+  if (sentiment >= 40) return 'text-[#e5c466]';
+  return 'text-[#ffb4ab]';
 };
 
 export default function MicroTargetingPage() {
-  const [activeTab, setActiveTab] = useState('segments');
+  const [activeTab, setActiveTab] = useState('voters');
+  const [selectedRows, setSelectedRows] = useState<string[]>([]);
+
+  const toggleRow = (id: string) => {
+    setSelectedRows(prev =>
+      prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]
+    );
+  };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-uradi-text-primary">Micro-Targeting</h1>
-          <p className="text-uradi-text-secondary mt-1">
-            Create precise voter segments and deliver targeted messaging
-          </p>
+    <div className="min-h-screen bg-[#0d1322] text-[#dde2f8] font-sans">
+      {/* Sidebar Navigation */}
+      <aside className="fixed left-0 top-0 h-full w-72 z-40 bg-[#151b2b] border-r border-[#4c4637]/15 shadow-2xl hidden md:flex flex-col">
+        <div className="px-8 py-10">
+          <div className="text-xl font-bold text-[#e5c466] tracking-tighter mb-12">SOVEREIGN</div>
+          <nav className="space-y-1">
+            {navItems.map((item, index) => (
+              <Link
+                key={index}
+                href="#"
+                className={`flex items-center gap-4 py-3 px-6 transition-colors rounded-lg ${
+                  item.active
+                    ? 'bg-[#2f3445]/60 text-[#e5c466] font-bold border-l-4 border-[#e5c466]'
+                    : 'text-[#dde2f8]/60 hover:text-[#dde2f8] hover:bg-[#242a3a]'
+                }`}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="font-medium text-sm tracking-tight">{item.label}</span>
+              </Link>
+            ))}
+          </nav>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export Data
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Segment
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl bg-uradi-bg-secondary border-uradi-border">
-              <DialogHeader>
-                <DialogTitle className="text-uradi-text-primary">Create Target Segment</DialogTitle>
-              </DialogHeader>
-              <SegmentBuilder />
-            </DialogContent>
-          </Dialog>
+        <div className="mt-auto p-8 border-t border-[#4c4637]/10 bg-[#0d1322]/40">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-[#c8a94e] flex items-center justify-center text-[#3d2f00] font-bold">DS</div>
+            <div>
+              <div className="font-medium text-sm tracking-tight text-[#e5c466]">Director Smith</div>
+              <div className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40">Elite Admin</div>
+            </div>
+          </div>
         </div>
-      </div>
+      </aside>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <StatCard title="Total Segments" value="24" change="+4" icon={Target} color="uradi-status-info" />
-        <StatCard title="Active Targets" value="89.4K" change="voters" icon={Users} color="uradi-status-positive" />
-        <StatCard title="Avg Conversion" value="14.2%" change="+2.1%" icon={TrendingUp} color="uradi-gold" />
-        <StatCard title="Messages Sent" value="45.2K" change="this week" icon={Send} color="uradi-status-neutral" />
-        <StatCard title="Top Segment" value="Youth" change="22.4% conv." icon={Zap} color="uradi-status-warning" />
-      </div>
+      {/* Main Content */}
+      <main className="md:ml-72 min-h-screen">
+        {/* TopAppBar */}
+        <header className="fixed top-0 right-0 left-0 md:left-72 z-50 bg-[#0d1322]/80 backdrop-blur-xl border-b border-[#4c4637]/10 px-8 h-20 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <button className="md:hidden text-[#e5c466]">
+              <Menu className="w-6 h-6" />
+            </button>
+            <h1 className="text-lg font-bold tracking-tight text-[#e5c466]">Command Center</h1>
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#50dfa4]/10 text-[#50dfa4] uppercase tracking-widest hidden sm:block">Live System</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <Eye className="w-5 h-5 text-[#dde2f8]/60" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#ffb4ab] rounded-full animate-pulse"></span>
+            </div>
+            <div className="h-8 w-[1px] bg-[#4c4637]/20 hidden sm:block"></div>
+            <button className="bg-gradient-to-br from-[#e5c466] to-[#c8a94e] text-[#3d2f00] px-6 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[#e5c466]/10 hover:shadow-[#e5c466]/20 transition-all active:scale-95 flex items-center gap-2">
+              <Rocket className="w-4 h-4" />
+              Generate Report
+            </button>
+          </div>
+        </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-uradi-bg-secondary border border-uradi-border">
-          <TabsTrigger value="segments">Segments</TabsTrigger>
-          <TabsTrigger value="builder">Segment Builder</TabsTrigger>
-          <TabsTrigger value="campaigns">Campaigns</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="segments" className="space-y-4">
-          <div className="flex flex-wrap items-center gap-4 p-4 bg-uradi-bg-secondary border border-uradi-border rounded-xl">
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Filter className="h-4 w-4 text-uradi-text-tertiary" />
-              <Input placeholder="Search segments..." className="flex-1" />
+        {/* Content Area */}
+        <div className="pt-28 pb-12 px-6 md:px-10 max-w-[1600px] mx-auto space-y-8">
+          {/* Header & Filter Tabs */}
+          <section className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div>
+                <h2 className="text-3xl font-black italic text-[#e5c466] tracking-tighter">Campaign Micro-targeting</h2>
+                <p className="text-[#cfc5b2] font-medium mt-1">Surgical data segmentation for strategic mobilization.</p>
+              </div>
+              <div className="flex items-center gap-2 bg-[#151b2b] p-1.5 rounded-xl border border-[#4c4637]/10">
+                {['voters', 'youth', 'anchors'].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-6 py-2 rounded-lg font-medium text-sm transition-all ${
+                      activeTab === tab
+                        ? 'bg-[#2f3445] text-[#e5c466]'
+                        : 'text-[#dde2f8]/60 hover:text-[#dde2f8]'
+                    }`}
+                  >
+                    {tab === 'voters' ? 'Voters' : tab === 'youth' ? 'Youth Ambassadors' : 'Anchor Citizens'}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            <Select>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent className="bg-uradi-bg-secondary border-uradi-border">
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="archived">Archived</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Advanced Filters Bento */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-[#151b2b] p-5 rounded-xl border border-[#4c4637]/5">
+                <label className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40 block mb-3">Demographic</label>
+                <select className="w-full bg-[#242a3a] border-none rounded-lg text-sm text-[#dde2f8] h-10 px-4">
+                  <option>All Ages</option>
+                  <option>18-25 (Gen Z)</option>
+                  <option>26-40 (Millennials)</option>
+                  <option>41+</option>
+                </select>
+              </div>
+              <div className="bg-[#151b2b] p-5 rounded-xl border border-[#4c4637]/5">
+                <label className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40 block mb-3">Alignment</label>
+                <div className="flex gap-2">
+                  <button className="flex-1 py-2 bg-[#e5c466]/10 text-[#e5c466] border border-[#e5c466]/20 rounded-lg text-xs font-bold">APC</button>
+                  <button className="flex-1 py-2 bg-[#242a3a] text-[#dde2f8]/40 rounded-lg text-xs font-bold">PDP</button>
+                  <button className="flex-1 py-2 bg-[#242a3a] text-[#dde2f8]/40 rounded-lg text-xs font-bold">LP</button>
+                </div>
+              </div>
+              <div className="bg-[#151b2b] p-5 rounded-xl border border-[#4c4637]/5">
+                <label className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40 block mb-3">Sentiment Range</label>
+                <div className="flex items-center gap-4">
+                  <input type="range" className="w-full accent-[#e5c466] bg-[#242a3a] h-1.5 rounded-full cursor-pointer" />
+                  <span className="font-mono text-[#e5c466] text-xs font-bold">75%+</span>
+                </div>
+              </div>
+              <div className="bg-[#151b2b] p-5 rounded-xl border border-[#4c4637]/5 flex items-end">
+                <button className="w-full h-10 bg-[#2f3445] hover:bg-[#3a4050] text-[#dde2f8] font-bold text-xs rounded-lg transition-colors flex items-center justify-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  Apply Precision Filter
+                </button>
+              </div>
+            </div>
+          </section>
 
-            <Select>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="LGA" />
-              </SelectTrigger>
-              <SelectContent className="bg-uradi-bg-secondary border-uradi-border">
-                <SelectItem value="all">All LGAs</SelectItem>
-                <SelectItem value="dutse">Dutse</SelectItem>
-                <SelectItem value="hadejia">Hadejia</SelectItem>
-                <SelectItem value="gumel">Gumel</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Data Ecosystem Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Main Table Section */}
+            <div className="lg:col-span-8 bg-[#151b2b] rounded-2xl overflow-hidden border border-[#4c4637]/5 shadow-xl">
+              <div className="px-6 md:px-8 py-6 border-b border-[#4c4637]/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h3 className="font-bold text-lg text-[#dde2f8]">Target Audience Registry</h3>
+                  <p className="text-xs text-[#dde2f8]/40 font-mono">SEGMENT_ID: ARCHITECT_BETA_09</p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <div className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40">Filtered Pool</div>
+                  <div className="font-mono text-[#e5c466] font-bold">12,402 Voters</div>
+                </div>
+              </div>
 
-          <div className="bg-uradi-bg-secondary border border-uradi-border rounded-xl overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-uradi-border hover:bg-transparent">
-                  <TableHead>Segment</TableHead>
-                  <TableHead>Size</TableHead>
-                  <TableHead>Conversion</TableHead>
-                  <TableHead>Criteria</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {mockSegments.map((segment) => (
-                  <TableRow key={segment.id} className="border-uradi-border">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-uradi-gold/10 flex items-center justify-center">
-                          <Target className="h-4 w-4 text-uradi-gold" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-uradi-text-primary">{segment.name}</p>
-                          <p className="text-xs text-uradi-text-tertiary">{segment.description}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-uradi-text-primary">
-                        {segment.size.toLocaleString()}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-16 h-2 bg-uradi-bg-tertiary rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-uradi-status-positive"
-                            style={{ width: `${segment.conversionRate * 5}%` }}
+              {/* Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-[#242a3a]">
+                    <tr>
+                      <th className="p-5 border-b border-[#4c4637]/10">
+                        <input type="checkbox" className="rounded bg-[#080e1d] border-[#4c4637] text-[#e5c466]" />
+                      </th>
+                      <th className="p-5 border-b border-[#4c4637]/10 text-[10px] uppercase tracking-widest text-[#dde2f8]/50">Voter Profile</th>
+                      <th className="p-5 border-b border-[#4c4637]/10 text-[10px] uppercase tracking-widest text-[#dde2f8]/50">LGA / Ward</th>
+                      <th className="p-5 border-b border-[#4c4637]/10 text-[10px] uppercase tracking-widest text-[#dde2f8]/50">Sentiment</th>
+                      <th className="p-5 border-b border-[#4c4637]/10 text-[10px] uppercase tracking-widest text-[#dde2f8]/50">Reach</th>
+                      <th className="p-5 border-b border-[#4c4637]/10 text-[10px] uppercase tracking-widest text-[#dde2f8]/50 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#4c4637]/5">
+                    {mockVoters.map((voter) => (
+                      <tr key={voter.id} className="hover:bg-[#242a3a]/30 transition-colors">
+                        <td className="p-5">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.includes(voter.id)}
+                            onChange={() => toggleRow(voter.id)}
+                            className="rounded bg-[#080e1d] border-[#4c4637] text-[#e5c466]"
                           />
-                        </div>
-                        <span className="text-sm font-mono text-uradi-status-positive">
-                          {segment.conversionRate}%
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {segment.criteria.issues.slice(0, 2).map((issue) => (
-                          <Badge key={issue} variant="secondary" className="text-xs">
-                            {issue}
-                          </Badge>
-                        ))}
-                        {segment.criteria.issues.length > 2 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{segment.criteria.issues.length - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(segment.status)}</TableCell>
-                    <TableCell className="text-uradi-text-secondary">{segment.lastUpdated}</TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
+                        </td>
+                        <td className="p-5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-lg bg-[#2f3445] flex items-center justify-center text-xs font-bold text-[#e5c466]">
+                              {voter.initials}
+                            </div>
+                            <div>
+                              <div className="font-bold text-sm text-[#dde2f8]">{voter.name}</div>
+                              <div className="text-[10px] text-[#dde2f8]/40">ID: #{voter.id}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-5">
+                          <div className="text-xs font-medium">{voter.lga}</div>
+                          <div className="text-[10px] text-[#dde2f8]/40">{voter.ward}</div>
+                        </td>
+                        <td className="p-5">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${getSentimentColor(voter.sentiment)}`}></div>
+                            <span className={`font-mono text-xs font-bold ${getSentimentText(voter.sentiment)}`}>{voter.sentiment}%</span>
+                          </div>
+                        </td>
+                        <td className="p-5">
+                          <div className="w-24 bg-[#080e1d] h-1.5 rounded-full overflow-hidden">
+                            <div className="bg-[#e5c466] h-full" style={{ width: `${voter.reach}%` }}></div>
+                          </div>
+                        </td>
+                        <td className="p-5 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button className="p-2 rounded-lg bg-[#2f3445] text-[#25D366] hover:bg-[#25D366]/10 transition-colors">
+                              <Smartphone className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 rounded-lg bg-[#2f3445] text-[#34B7F1] hover:bg-[#34B7F1]/10 transition-colors">
+                              <MessageSquare className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-        <TabsContent value="builder">
-          <SegmentBuilder />
-        </TabsContent>
+              {/* Table Footer */}
+              <div className="p-4 bg-[#080e1d]/50 flex items-center justify-between border-t border-[#4c4637]/10">
+                <span className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40 px-4">Showing 4 of 12,402 entries</span>
+                <div className="flex items-center gap-2">
+                  <button className="w-8 h-8 flex items-center justify-center rounded bg-[#2f3445] text-[#dde2f8]/60">
+                    <ChevronRight className="w-4 h-4 rotate-180" />
+                  </button>
+                  <button className="w-8 h-8 flex items-center justify-center rounded bg-[#e5c466] text-[#3d2f00] font-bold text-xs">1</button>
+                  <button className="w-8 h-8 flex items-center justify-center rounded bg-[#2f3445] text-[#dde2f8]/60">
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
 
-        <TabsContent value="campaigns">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              { name: 'Youth Employment Drive', segment: 'Youth Swing Voters - Dutse', sent: 12450, opened: 8932, clicked: 3241, status: 'running' },
-              { name: 'Women in Business', segment: 'Women Entrepreneurs', sent: 8930, opened: 7124, clicked: 2890, status: 'completed' },
-              { name: 'Rural Development', segment: 'Rural Farmers - Hadejia', sent: 5670, opened: 3402, clicked: 890, status: 'scheduled' },
-              { name: 'First-Time Voter Drive', segment: 'First-Time Voters', sent: 22100, opened: 18942, clicked: 8542, status: 'running' },
-            ].map((campaign) => (
-              <Card key={campaign.name} className="bg-uradi-bg-secondary border-uradi-border">
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium text-uradi-text-primary">{campaign.name}</h3>
-                      <p className="text-sm text-uradi-text-secondary">{campaign.segment}</p>
+            {/* Strategic Summary Sidebar */}
+            <div className="lg:col-span-4 space-y-6">
+              {/* Campaign Reach Card */}
+              <div className="bg-[#151b2b] p-8 rounded-2xl border border-[#4c4637]/5">
+                <h4 className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40 mb-6">Reach Efficiency</h4>
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-sm font-bold">Total Target Conversion</span>
+                      <span className="font-mono text-xl font-bold text-[#e5c466]">72.4%</span>
                     </div>
-                    <Badge
-                      variant={campaign.status === 'running' ? 'success' : campaign.status === 'completed' ? 'secondary' : 'warning'}
-                    >
-                      {campaign.status}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p className="text-lg font-bold text-uradi-text-primary font-mono">
-                        {((campaign.opened / campaign.sent) * 100).toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-uradi-text-tertiary">Open Rate</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-uradi-gold font-mono">
-                        {((campaign.clicked / campaign.sent) * 100).toFixed(1)}%
-                      </p>
-                      <p className="text-xs text-uradi-text-tertiary">Click Rate</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-uradi-status-positive font-mono">
-                        {campaign.sent.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-uradi-text-tertiary">Sent</p>
+                    <div className="w-full h-2 bg-[#080e1d] rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#e5c466] to-[#c8a94e]" style={{ width: '72.4%' }}></div>
                     </div>
                   </div>
-
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="outline" className="flex-1 gap-1">
-                      <Eye className="h-3 w-3" />
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline" className="flex-1 gap-1">
-                      <Copy className="h-3 w-3" />
-                      Clone
-                    </Button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-[#080e1d] p-4 rounded-xl">
+                      <div className="text-[10px] text-[#dde2f8]/40 uppercase tracking-tighter">Messaged</div>
+                      <div className="font-mono text-lg font-bold">8.9K</div>
+                    </div>
+                    <div className="bg-[#080e1d] p-4 rounded-xl">
+                      <div className="text-[10px] text-[#dde2f8]/40 uppercase tracking-tighter">Engaged</div>
+                      <div className="font-mono text-lg font-bold text-[#50dfa4]">6.1K</div>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
+                </div>
+              </div>
 
-        <TabsContent value="insights">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="bg-uradi-bg-secondary border-uradi-border">
-              <CardHeader>
-                <CardTitle className="text-uradi-text-primary">Segment Performance</CardTitle>
-                <CardDescription>Conversion rates by segment</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {mockSegments
-                  .sort((a, b) => b.conversionRate - a.conversionRate)
-                  .map((segment) => (
-                    <div key={segment.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-uradi-text-primary">{segment.name}</span>
-                        <span className="text-sm font-mono text-uradi-gold">{segment.conversionRate}%</span>
-                      </div>
-                      <div className="h-2 bg-uradi-bg-tertiary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-uradi-gold"
-                          style={{ width: `${(segment.conversionRate / 25) * 100}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-uradi-text-tertiary">
-                        {segment.size.toLocaleString()} voters
-                      </p>
-                    </div>
-                  ))}
-              </CardContent>
-            </Card>
+              {/* Bulk Actions */}
+              <div className="bg-[rgba(47,52,69,0.6)] backdrop-blur-xl p-8 rounded-2xl border border-[#e5c466]/10">
+                <h4 className="text-sm font-bold text-[#e5c466] mb-4 flex items-center gap-2">
+                  <Send className="w-4 h-4" />
+                  Bulk Action Broadcast
+                </h4>
+                <p className="text-xs text-[#dde2f8]/60 mb-6">Initiate immediate communication with selected cohort ({selectedRows.length} selected).</p>
+                <div className="space-y-3">
+                  <button className="w-full flex items-center justify-between p-4 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] group hover:bg-[#25D366] hover:text-white transition-all">
+                    <span className="font-bold text-sm">WhatsApp Broadcast</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button className="w-full flex items-center justify-between p-4 rounded-xl bg-[#34B7F1]/10 border border-[#34B7F1]/20 text-[#34B7F1] group hover:bg-[#34B7F1] hover:text-white transition-all">
+                    <span className="font-bold text-sm">SMS Direct Protocol</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                  <button className="w-full flex items-center justify-between p-4 rounded-xl bg-[#2f3445] text-[#dde2f8] group hover:bg-[#dde2f8] hover:text-[#0d1322] transition-all">
+                    <span className="font-bold text-sm">Direct Voice IVR</span>
+                    <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+              </div>
 
-            <Card className="bg-uradi-bg-secondary border-uradi-border">
-              <CardHeader>
-                <CardTitle className="text-uradi-text-primary">Targeting Insights</CardTitle>
-                <CardDescription>Key metrics and recommendations</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  { title: 'Top Performing Issue', value: 'Employment', change: '22.4% conversion', icon: TrendingUp },
-                  { title: 'Best Channel', value: 'WhatsApp', change: '18.7% engagement', icon: MessageSquare },
-                  { title: 'Highest LGA', value: 'Dutse', change: '15.2% of targets', icon: MapPin },
-                  { title: 'Optimal Age Group', value: '18-25', change: '22.4% conversion', icon: Users },
-                ].map((insight) => {
-                  const Icon = insight.icon;
-                  return (
-                    <div key={insight.title} className="flex items-center gap-4 p-3 border border-uradi-border rounded-lg">
-                      <div className="h-10 w-10 rounded-lg bg-uradi-gold/10 flex items-center justify-center">
-                        <Icon className="h-5 w-5 text-uradi-gold" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-uradi-text-tertiary">{insight.title}</p>
-                        <p className="font-medium text-uradi-text-primary">{insight.value}</p>
-                      </div>
-                      <Badge variant="secondary">{insight.change}</Badge>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-function SegmentBuilder() {
-  return (
-    <div className="space-y-6 mt-4">
-      <div className="space-y-2">
-        <label className="text-sm text-uradi-text-secondary">Segment Name</label>
-        <Input placeholder="e.g., Youth Swing Voters - Dutse" />
-      </div>
-
-      <div className="space-y-2">
-        <label className="text-sm text-uradi-text-secondary">Description</label>
-        <Input placeholder="Brief description of this segment..." />
-      </div>
-
-      <div className="border border-uradi-border rounded-lg p-4 space-y-4">
-        <h3 className="font-medium text-uradi-text-primary flex items-center gap-2">
-          <Filter className="h-4 w-4 text-uradi-gold" />
-          Targeting Criteria
-        </h3>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm text-uradi-text-secondary">LGAs</label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Select LGAs" />
-              </SelectTrigger>
-              <SelectContent className="bg-uradi-bg-secondary border-uradi-border">
-                <SelectItem value="all">All LGAs</SelectItem>
-                <SelectItem value="dutse">Dutse</SelectItem>
-                <SelectItem value="hadejia">Hadejia</SelectItem>
-                <SelectItem value="gumel">Gumel</SelectItem>
-                <SelectItem value="kazaure">Kazaure</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm text-uradi-text-secondary">Age Range</label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Select age range" />
-              </SelectTrigger>
-              <SelectContent className="bg-uradi-bg-secondary border-uradi-border">
-                <SelectItem value="all">All Ages</SelectItem>
-                <SelectItem value="18-25">18-25</SelectItem>
-                <SelectItem value="26-35">26-35</SelectItem>
-                <SelectItem value="36-50">36-50</SelectItem>
-                <SelectItem value="50+">50+</SelectItem>
-              </SelectContent>
-            </Select>
+              {/* Geographic Heatmap Placeholder */}
+              <div className="bg-[#151b2b] rounded-2xl border border-[#4c4637]/5 overflow-hidden">
+                <div className="p-6">
+                  <h4 className="text-[10px] uppercase tracking-widest text-[#dde2f8]/40">Density Map</h4>
+                </div>
+                <div className="h-48 w-full bg-[#080e1d] relative flex items-center justify-center">
+                  <div className="absolute inset-0 opacity-20">
+                    <div className="w-full h-full" style={{
+                      backgroundImage: `radial-gradient(circle at 30% 40%, rgba(229,196,102,0.3) 0%, transparent 50%),
+                                        radial-gradient(circle at 70% 60%, rgba(229,196,102,0.2) 0%, transparent 40%)`
+                    }}></div>
+                  </div>
+                  <div className="w-12 h-12 bg-[#e5c466]/20 rounded-full animate-ping absolute"></div>
+                </div>
+                <div className="p-6 flex justify-between items-center bg-[#2f3445]/20">
+                  <span className="text-xs font-bold">Lagos Metropolitan</span>
+                  <span className="text-[10px] font-mono text-[#e5c466]">LIVE UPDATES</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm text-uradi-text-secondary">Party Affiliation</label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Select party" />
-              </SelectTrigger>
-              <SelectContent className="bg-uradi-bg-secondary border-uradi-border">
-                <SelectItem value="all">All Parties</SelectItem>
-                <SelectItem value="pdp">PDP</SelectItem>
-                <SelectItem value="apc">APC</SelectItem>
-                <SelectItem value="nnpp">NNPP</SelectItem>
-                <SelectItem value="undecided">Undecided</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Footer */}
+        <footer className="w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-[#4c4637]/15 bg-[#0d1322]">
+          <div className="font-mono text-[11px] uppercase tracking-widest text-[#dde2f8]/50 text-center md:text-left">
+            © 2024 The Sovereign Interface. All rights reserved.
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm text-uradi-text-secondary">Sentiment</label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Select sentiment" />
-              </SelectTrigger>
-              <SelectContent className="bg-uradi-bg-secondary border-uradi-border">
-                <SelectItem value="all">Any</SelectItem>
-                <SelectItem value="positive">Positive</SelectItem>
-                <SelectItem value="neutral">Neutral</SelectItem>
-                <SelectItem value="negative">Negative</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex gap-8">
+            <a href="#" className="text-[#dde2f8]/40 hover:text-[#e5c466] transition-colors font-mono text-[11px]">Privacy Policy</a>
+            <a href="#" className="text-[#dde2f8]/40 hover:text-[#e5c466] transition-colors font-mono text-[11px]">Terms of Service</a>
+            <a href="#" className="text-[#dde2f8]/40 hover:text-[#e5c466] transition-colors font-mono text-[11px]">Security Protocols</a>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm text-uradi-text-secondary">Key Issues</label>
-          <div className="flex flex-wrap gap-2">
-            {['Employment', 'Education', 'Healthcare', 'Security', 'Infrastructure', 'Agriculture'].map((issue) => (
-              <Badge
-                key={issue}
-                variant="secondary"
-                className="cursor-pointer hover:bg-uradi-gold/20 hover:text-uradi-gold"
-              >
-                {issue}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="p-4 bg-uradi-bg-tertiary rounded-lg">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-sm text-uradi-text-secondary">Estimated Reach</span>
-          <span className="text-2xl font-bold text-uradi-gold font-mono">12,450</span>
-        </div>
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div>
-            <p className="text-lg font-bold text-uradi-text-primary">8,932</p>
-            <p className="text-xs text-uradi-text-tertiary">With Phone</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-uradi-text-primary">7,234</p>
-            <p className="text-xs text-uradi-text-tertiary">With WhatsApp</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-uradi-text-primary">12,450</p>
-            <p className="text-xs text-uradi-text-tertiary">Total</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-3">
-        <Button variant="outline">Save as Draft</Button>
-        <Button className="gap-2">
-          <Target className="h-4 w-4" />
-          Create Segment
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  change,
-  icon: Icon,
-  color,
-}: {
-  title: string;
-  value: string;
-  change: string;
-  icon: React.ElementType;
-  color: string;
-}) {
-  const colorClasses: Record<string, { text: string; bg: string }> = {
-    'uradi-status-info': { text: 'text-uradi-status-info', bg: 'bg-uradi-status-info/10' },
-    'uradi-status-positive': { text: 'text-uradi-status-positive', bg: 'bg-uradi-status-positive/10' },
-    'uradi-status-critical': { text: 'text-uradi-status-critical', bg: 'bg-uradi-status-critical/10' },
-    'uradi-status-warning': { text: 'text-uradi-status-warning', bg: 'bg-uradi-status-warning/10' },
-    'uradi-gold': { text: 'text-uradi-gold', bg: 'bg-uradi-gold/10' },
-    'uradi-status-neutral': { text: 'text-uradi-status-neutral', bg: 'bg-uradi-status-neutral/10' },
-    'uradi-party-pdp': { text: 'text-uradi-party-pdp', bg: 'bg-uradi-party-pdp/10' },
-    'uradi-party-apc': { text: 'text-uradi-party-apc', bg: 'bg-uradi-party-apc/10' },
-    'uradi-party-nnpp': { text: 'text-uradi-party-nnpp', bg: 'bg-uradi-party-nnpp/10' },
-  };
-  const colors = colorClasses[color] || colorClasses['uradi-status-info'];
-
-  return (
-    <div className="bg-uradi-bg-secondary border border-uradi-border rounded-xl p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-uradi-text-secondary text-sm">{title}</p>
-          <p className="text-2xl font-bold text-uradi-text-primary font-mono mt-1">{value}</p>
-          <p className={`text-sm mt-1 ${colors.text}`}>{change}</p>
-        </div>
-        <div className={`p-2 rounded-lg ${colors.bg}`}>
-          <Icon className={`h-5 w-5 ${colors.text}`} />
-        </div>
-      </div>
+        </footer>
+      </main>
     </div>
   );
 }
