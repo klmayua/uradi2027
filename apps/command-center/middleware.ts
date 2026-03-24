@@ -62,11 +62,13 @@ export function middleware(request: NextRequest) {
                        pathname === '/favicon.ico';
 
   // Public paths that don't require auth (customer websites)
+  // Note: With basePath: '/portal', paths are relative to basePath
   const publicPaths = [
     '/login',
     '/forgot-password',
     '/reset-password',
     '/public',
+    '/auth',  // Auth API endpoints (login, logout, etc.)
   ];
 
   const isPublicPath = publicPaths.some(path => pathname.startsWith(path));
@@ -78,8 +80,9 @@ export function middleware(request: NextRequest) {
                   request.headers.get('authorization')?.replace('Bearer ', '');
 
     if (!token) {
-      // Redirect to login
-      const loginUrl = new URL('/login', request.url);
+      // Redirect to login - preserve the /portal prefix if present
+      const loginPath = pathname.startsWith('/portal') ? '/portal/login' : '/login';
+      const loginUrl = new URL(loginPath, request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -109,6 +112,9 @@ export function middleware(request: NextRequest) {
 
   // Add custom headers for debugging (remove in production)
   response.headers.set('X-URADI-Version', '1.0.0');
+  
+  // Pass hostname to client for conditional rendering
+  response.headers.set('X-Host', request.headers.get('host') || '');
 
   return response;
 }

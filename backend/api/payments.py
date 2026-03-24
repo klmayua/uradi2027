@@ -149,7 +149,7 @@ def create_subscription(
 
 
 @router.post("/webhook")
-def paystack_webhook(request: Request, db: Session = Depends(get_db)):
+async def paystack_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Handle Paystack webhook events
     This endpoint should be publicly accessible (no auth required)

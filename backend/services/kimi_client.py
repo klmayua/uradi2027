@@ -111,7 +111,7 @@ class KimiClient:
 
     async def _make_request(self, messages: List[Dict[str, str]], temperature: float = 0.3) -> Dict[str, Any]:
         """Make API request to Kimi with retry logic"""
-        if not self.api_key or self.api_key == "sk-YOUR_KIMI_API_KEY_HERE"::
+        if not self.api_key or self.api_key == "sk-YOUR_KIMI_API_KEY_HERE":
             raise ValueError("KIMI_API_KEY not configured")
 
         headers = {

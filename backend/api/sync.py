@@ -14,7 +14,7 @@ import gzip
 import base64
 from database import get_db
 from models import (
-    Voter, SentimentEntry, CanvassSession, CanvassContact,
+    Voter, SentimentEntry,
     MonitorAssignment, AccreditationRecord, VoteTally, ElectionDayIncident,
     PollingUnit, User
 )

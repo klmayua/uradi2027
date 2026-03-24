@@ -9,7 +9,7 @@ from utils.rate_limiting import auth_limit
 from utils.logging_config import audit_logger, get_logger
 import os
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 class LoginRequest(BaseModel):
     email: str

@@ -19,18 +19,17 @@ import {
   MapPin,
   ArrowRight,
   School,
-  Shield,
+  ShieldAlert,
   Leaf,
   HeartHandshake,
   Phone,
   Mail,
   Support,
   Construction,
-  Security,
-  HealthAndSafety,
-  Public,
-  RssFeed,
-  BrandingWatermark,
+  Stethoscope,
+  Globe,
+  Rss,
+  Droplets,
 } from 'lucide-react';
 import { DynamicNavigation } from '@/components/public/DynamicNavigation';
 import { DynamicButton } from '@/components/public/DynamicButton';
@@ -73,7 +72,7 @@ const LAMIDO_CONFIG = {
         'Fostering small business growth through strategic investment, agricultural modernization, and direct capital access.',
     },
     {
-      icon: Shield,
+      icon: ShieldAlert,
       title: 'Total Security',
       description:
         'Ensuring community safety through comprehensive policing reforms, agricultural security, and expanded community resources.',
@@ -530,7 +529,7 @@ export default function StatesmanLandingPage() {
                       type="button"
                       className="flex flex-col items-center p-3 border-2 border-uradi-border rounded-md hover:border-uradi-gold transition-all group"
                     >
-                      <HealthAndSafety className="w-6 h-6 text-uradi-text-tertiary group-hover:text-uradi-gold" />
+                      <Stethoscope className="w-6 h-6 text-uradi-text-tertiary group-hover:text-uradi-gold" />
                       <span className="text-[10px] font-bold mt-1 text-uradi-text-tertiary group-hover:text-uradi-gold">
                         Health
                       </span>
@@ -546,7 +545,7 @@ export default function StatesmanLandingPage() {
                       type="button"
                       className="flex flex-col items-center p-3 border-2 border-uradi-border rounded-md hover:border-uradi-gold transition-all group"
                     >
-                      <Security className="w-6 h-6 text-uradi-text-tertiary group-hover:text-uradi-gold" />
+                      <ShieldAlert className="w-6 h-6 text-uradi-text-tertiary group-hover:text-uradi-gold" />
                       <span className="text-[10px] font-bold mt-1 text-uradi-text-tertiary group-hover:text-uradi-gold">
                         Safety
                       </span>
@@ -658,7 +657,7 @@ export default function StatesmanLandingPage() {
                 >
                   <div className="aspect-video overflow-hidden rounded-xl mb-6 shadow-md bg-uradi-bg-tertiary flex items-center justify-center">
                     <div className="text-center">
-                      <Public className="w-16 h-16 text-uradi-gold/30 mx-auto mb-2" />
+                      <Globe className="w-16 h-16 text-uradi-gold/30 mx-auto mb-2" />
                       <p className="text-uradi-text-tertiary text-sm">News Image</p>
                     </div>
                   </div>
@@ -702,7 +701,7 @@ export default function StatesmanLandingPage() {
                 <span className="text-xs font-bold text-uradi-text-secondary">PROGRESSIVE GROUP</span>
               </div>
               <div className="flex items-center gap-2 justify-center">
-                <Shield className="w-6 h-6 text-uradi-text-secondary" />
+                <ShieldAlert className="w-6 h-6 text-uradi-text-secondary" />
                 <span className="text-xs font-bold text-uradi-text-secondary">VANGUARD</span>
               </div>
             </div>
@@ -767,10 +766,10 @@ export default function StatesmanLandingPage() {
           <div className="pt-10 border-t border-uradi-border flex flex-col items-center gap-8">
             <div className="flex gap-8">
               <Link href="#" className="text-uradi-text-tertiary hover:text-uradi-gold transition-colors">
-                <Public className="w-5 h-5" />
+                <Globe className="w-5 h-5" />
               </Link>
               <Link href="#" className="text-uradi-text-tertiary hover:text-uradi-gold transition-colors">
-                <RssFeed className="w-5 h-5" />
+                <Rss className="w-5 h-5" />
               </Link>
               <Link href="#" className="text-uradi-text-tertiary hover:text-uradi-gold transition-colors">
                 <Mail className="w-5 h-5" />
@@ -778,6 +777,13 @@ export default function StatesmanLandingPage() {
             </div>
 
             <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-2 text-[10px] text-uradi-text-tertiary">
+                <span>Powered by</span>
+                <a href="https://uradi.nyamabo.com" className="text-uradi-gold hover:text-uradi-gold-light transition-colors font-bold">
+                  URADI-360
+                </a>
+                <span>Platform</span>
+              </div>
               <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-uradi-text-tertiary max-w-xs mx-auto">
                 © 2027 COMMITTEE TO ELECT MUSTAPHA SULE LAMIDO. ALL RIGHTS RESERVED. PAID FOR BY THE
                 CAMPAIGN FUND.

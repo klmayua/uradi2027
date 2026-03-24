@@ -3,7 +3,7 @@ Rapid Response System API - Task 4.6
 Incident logging, AI-assisted response builder, response analytics
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from pydantic import BaseModel
