@@ -523,3 +523,40 @@ class BudgetItem(Base):
     updated_at = Column(DateTime(timezone=True), default=func.now())
     
     tenant = relationship("Tenant")
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String, ForeignKey("tenants.id"))
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    action = Column(String, nullable=False)
+    resource_type = Column(String)
+    resource_id = Column(UUID(as_uuid=True))
+    old_values = Column(JSONB)
+    new_values = Column(JSONB)
+    ip_address = Column(String)
+    user_agent = Column(String)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+
+    tenant = relationship("Tenant", foreign_keys=[tenant_id])
+    user = relationship("User", foreign_keys=[user_id])
+
+
+class CanvassingContact(Base):
+    __tablename__ = "canvassing_contacts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String, ForeignKey("tenants.id"))
+    voter_id = Column(UUID(as_uuid=True), ForeignKey("voters.id"))
+    canvasser_id = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    contact_type = Column(String)
+    outcome = Column(String)
+    notes = Column(Text)
+    follow_up_required = Column(Boolean, default=False)
+    follow_up_date = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), default=func.now())
+
+    tenant = relationship("Tenant")
+    voter = relationship("Voter")
+    canvasser = relationship("User")

@@ -15,7 +15,7 @@ import asyncio
 from database import get_db
 from models import (
     Voter, SentimentEntry, IntelligenceReport, Scenario, CoalitionPartner,
-    LGA, Ward, ContentItem
+    LGA, Ward, ContentItem, User
 )
 from auth.utils import get_current_user
 from services.kimi_client import kimi_client, SentimentResult, TargetingRecommendation, ScenarioProjection

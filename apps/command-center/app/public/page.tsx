@@ -11,15 +11,15 @@ import {
   Menu,
   X,
   ArrowRight,
-  Architecture,
-  Visibility,
+  Building2,
+  Eye,
   Gavel,
   Zap,
   ChevronRight,
-  NorthEast,
+  ArrowUpRight,
   TrendingUp,
   Globe,
-  Shield,
+  ShieldAlert,
   Layers,
 } from 'lucide-react';
 
@@ -60,7 +60,7 @@ export default function SovereignLandingPage() {
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <Architecture className="w-6 h-6 text-[#e5c466]" />
+            <Building2 className="w-6 h-6 text-[#e5c466]" />
             <span className="text-xl font-bold tracking-tighter text-[#dde2f8]">URADI-360</span>
           </div>
 
@@ -177,14 +177,14 @@ export default function SovereignLandingPage() {
             <div className="p-8 rounded-xl border border-[#4c4637]/10 group hover:border-[#e5c466]/30 transition-all duration-500"
                  style={{ background: 'rgba(47, 52, 69, 0.6)', backdropFilter: 'blur(20px)' }}>
               <div className="w-14 h-14 rounded-lg bg-[#2f3445] flex items-center justify-center mb-8 border border-[#4c4637]/20">
-                <Visibility className="w-7 h-7 text-[#e5c466]" />
+                <Eye className="w-7 h-7 text-[#e5c466]" />
               </div>
               <h3 className="text-2xl font-bold mb-4 tracking-tight">Active Surveillance</h3>
               <p className="text-[#cfc5b2] leading-relaxed mb-8">
                 Continuous data stream integration for real-time geopolitical threat assessment and response mapping.
               </p>
               <Link href="#" className="inline-flex items-center gap-2 text-[#e5c466] font-mono text-xs tracking-widest uppercase group-hover:gap-4 transition-all">
-                Read Intel <NorthEast className="w-4 h-4" />
+                Read Intel <ArrowUpRight className="w-4 h-4" />
               </Link>
             </div>
 
@@ -199,7 +199,7 @@ export default function SovereignLandingPage() {
                 Implementation of decentralized legal frameworks that ensure operational autonomy and ethical compliance.
               </p>
               <Link href="#" className="inline-flex items-center gap-2 text-[#e5c466] font-mono text-xs tracking-widest uppercase group-hover:gap-4 transition-all">
-                Read Intel <NorthEast className="w-4 h-4" />
+                Read Intel <ArrowUpRight className="w-4 h-4" />
               </Link>
             </div>
 
@@ -214,7 +214,7 @@ export default function SovereignLandingPage() {
                 Mobilizing resources within 360 minutes to critical zones identified by our global intelligence engine.
               </p>
               <Link href="#" className="inline-flex items-center gap-2 text-[#e5c466] font-mono text-xs tracking-widest uppercase group-hover:gap-4 transition-all">
-                Read Intel <NorthEast className="w-4 h-4" />
+                Read Intel <ArrowUpRight className="w-4 h-4" />
               </Link>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function SovereignLandingPage() {
           </span>
           <div className="flex gap-6">
             <Globe className="text-[#e5c466]/40 w-5 h-5" />
-            <Shield className="text-[#e5c466]/40 w-5 h-5" />
+            <ShieldAlert className="text-[#e5c466]/40 w-5 h-5" />
             <TrendingUp className="text-[#e5c466]/40 w-5 h-5" />
           </div>
         </div>

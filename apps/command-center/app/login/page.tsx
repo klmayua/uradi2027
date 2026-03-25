@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Lock, Mail, Building2, ChevronDown, MapPin } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, Building2, ChevronDown } from 'lucide-react';
 import { useLogin } from '@/hooks/useAuth';
 import { tenants, useTenantStore } from '@/stores/tenantStore';
 
@@ -28,17 +28,29 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showTenantDropdown, setShowTenantDropdown] = useState(false);
   const [error, setError] = useState('');
+  const [isUradiAdminPortal, setIsUradiAdminPortal] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const loginMutation = useLogin();
   const setTenant = useTenantStore((state) => state.setTenant);
+
+  useEffect(() => {
+    setMounted(true);
+    // Detect if this is URADI admin portal (no tenant pre-selection)
+    const hostname = window.location.hostname;
+    const isUradi = hostname.includes('uradi.nyamabo.com') || hostname === 'localhost';
+    setIsUradiAdminPortal(isUradi);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      // Set tenant before login so it's included in headers
-      setTenant(selectedTenant);
+      // For URADI admin, don't set tenant - let backend determine from user
+      if (!isUradiAdminPortal) {
+        setTenant(selectedTenant);
+      }
 
       const result = await loginMutation.mutateAsync({ email, password });
       // Store token in localStorage
@@ -51,13 +63,20 @@ export default function LoginPage() {
       if (result.user) {
         localStorage.setItem('user', JSON.stringify(result.user));
       }
-      // Store selected tenant
-      localStorage.setItem('tenant-storage', JSON.stringify({ currentTenant: tenants[selectedTenant] }));
+      // Store selected tenant (only for tenant-specific portals)
+      if (!isUradiAdminPortal) {
+        localStorage.setItem('tenant-storage', JSON.stringify({ currentTenant: tenants[selectedTenant] }));
+      }
+      // Set cookie for middleware
+      document.cookie = `token=${result.access_token}; path=/; max-age=86400; SameSite=Strict`;
       router.push('/overview');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     }
   };
+
+  // Don't render tenant selector until mounted (client-side)
+  const showTenantSelector = mounted && !isUradiAdminPortal;
 
   const currentTenantConfig = tenantConfig[selectedTenant];
 
@@ -102,7 +121,8 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Tenant Selector */}
+            {/* Tenant Selector - Only show for tenant-specific portals (not URADI admin) */}
+            {showTenantSelector && (
             <div>
               <label className="block text-sm font-medium text-uradi-text-secondary mb-2">
                 Select Campaign
@@ -157,6 +177,7 @@ export default function LoginPage() {
                 Accessing {tenants[selectedTenant].candidate_name}&#39;s {tenants[selectedTenant].candidate_party} campaign
               </p>
             </div>
+            )}
 
             {/* Email Field */}
             <div>

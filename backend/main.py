@@ -43,14 +43,14 @@ from api.ai_agents import router as ai_agents_router
 from api.governance import router as governance_router
 from api.rapid_response import router as rapid_response_router
 from api.polls import router as polls_router
-from api.email import router as email_router
+# from api.email import router as email_router  # Disabled - sendgrid not installed
 from api.payments import router as payments_router
-from api.public import router as public_router
+# from api.public import router as public_router  # Disabled - missing models
 from api.ussd import router as ussd_router
 from api.compliance import router as compliance_router
-from api.osint import router as osint_router
-from api.exports import router as exports_router
-from api.admin import router as admin_router
+# from api.osint import router as osint_router  # Disabled - missing models
+# from api.exports import router as exports_router  # Disabled
+# from api.admin import router as admin_router  # Disabled - missing function
 from api.users import router as users_api_router
 from api.platform_admin import router as platform_admin_router
 from api.electoral import router as electoral_router
@@ -146,14 +146,14 @@ app.include_router(ai_agents_router, prefix="/api")
 app.include_router(governance_router, prefix="/api")
 app.include_router(rapid_response_router, prefix="/api")
 app.include_router(polls_router, prefix="/api")
-app.include_router(email_router, prefix="/api")
+# app.include_router(email_router, prefix="/api")  # Disabled
 app.include_router(payments_router, prefix="/api")
-app.include_router(public_router, prefix="/api")
+# app.include_router(public_router, prefix="/api")  # Disabled
 app.include_router(ussd_router)
 app.include_router(compliance_router, prefix="/api")
-app.include_router(osint_router, prefix="/api")
-app.include_router(exports_router, prefix="/api")
-app.include_router(admin_router, prefix="/api")
+# app.include_router(osint_router, prefix="/api")  # Disabled
+# app.include_router(exports_router, prefix="/api")  # Disabled
+# app.include_router(admin_router, prefix="/api")  # Disabled
 app.include_router(platform_admin_router, prefix="/api")
 app.include_router(users_api_router, prefix="/api")
 app.include_router(electoral_router, prefix="/api")

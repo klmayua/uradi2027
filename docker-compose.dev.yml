@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: uradi2027-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: uradi360
+      POSTGRES_USER: uradi
+      POSTGRES_PASSWORD: UrAd1SecurePass2027
+    ports:
+      - "127.0.0.1:5435:5432"
+    volumes:
+      - uradi2027_postgres_data:/var/lib/postgresql/data
+    networks:
+      - uradi2027-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uradi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: uradi2027-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6382:6379"
+    networks:
+      - uradi2027-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    image: python:3.12-slim
+    container_name: uradi2027-api
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "127.0.0.1:8011:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://uradi:UrAd1SecurePass2027@postgres:5432/uradi360
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=uradi2027_secret_key_change_in_production
+      - JWT_ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - ALLOWED_ORIGINS=https://uradi.nyamabo.com
+      - CORS_ORIGIN=https://uradi.nyamabo.com
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+    command: >
+      sh -c "apt-get update && apt-get install -y libpq5 curl && pip install --no-cache-dir -r requirements.txt sendgrid==6.11.0 && alembic stamp head 2>/dev/null || true; alembic upgrade heads && uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - uradi2027-network
+
+  command-center:
+    build:
+      context: ./apps/command-center
+      dockerfile: Dockerfile
+    container_name: uradi2027-command-center
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=https://uradi.nyamabo.com/api
+      - NODE_ENV=production
+    ports:
+      - "127.0.0.1:3004:3000"
+    depends_on:
+      - api
+    networks:
+      - uradi2027-network
+
+  citizen-portal:
+    build:
+      context: ./apps/citizen-portal
+      dockerfile: Dockerfile
+    container_name: uradi2027-citizen-portal
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=https://uradi.nyamabo.com/api
+      - NODE_ENV=production
+    ports:
+      - "127.0.0.1:3005:3000"
+    depends_on:
+      - api
+    networks:
+      - uradi2027-network
+
+networks:
+  uradi2027-network:
+    driver: bridge
+
+volumes:
+  uradi2027_postgres_data:

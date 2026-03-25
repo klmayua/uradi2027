@@ -11,9 +11,7 @@ from typing import List, Optional
 from datetime import datetime
 from database import get_db
 from models import (
-    Tenant, Voter, NewsArticle, Event, Promise, Metric,
-    Office, FAQ, Resource, Testimonial, Donation, Volunteer,
-    ContactMessage, RS VP
+    Tenant, Voter, ContactMessage
 )
 import uuid
 

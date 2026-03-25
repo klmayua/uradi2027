@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel, EmailStr, Field
 from typing import List, Optional, Dict, Any
+from enum import Enum
 from datetime import datetime, timedelta
 import uuid
 import secrets
@@ -16,7 +17,7 @@ import string
 from database import get_db
 from models import User, Tenant, AuditLog
 from auth.utils import get_current_user, get_password_hash, verify_password
-from email_service import send_email
+# from email_service import send_email  # Disabled
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -266,11 +267,12 @@ def send_invite_email(email: str, full_name: str, invite_token: str, tenant_name
     </html>
     """
 
-    send_email(
-        to_email=email,
-        subject=f"Invitation to join {tenant_name} on URADI-360",
-        html_content=html_content
-    )
+    # send_email(
+    #     to_email=email,
+    #     subject=f"Invitation to join {tenant_name} on URADI-360",
+    #     html_content=html_content
+    # )
+    pass  # Email disabled
 
 
 def log_user_action(db: Session, user_id: str, action: str, resource: str, details: Dict = None, ip_address: str = None):
