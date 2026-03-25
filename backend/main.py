@@ -22,6 +22,7 @@ from middleware import tenant_middleware
 # Import routers
 from auth.routes import router as auth_router
 from auth.oauth import router as oauth_router
+from auth.password_reset import router as password_reset_router
 from tenants.routes import router as tenants_router
 from users.routes import router as users_router
 from api.political_actors import router as political_actors_router
@@ -51,6 +52,20 @@ from api.osint import router as osint_router
 from api.exports import router as exports_router
 from api.admin import router as admin_router
 from api.users import router as users_api_router
+from api.platform_admin import router as platform_admin_router
+from api.electoral import router as electoral_router
+
+# New API modules for frontend support
+from api.dashboard import router as dashboard_router
+from api.citizen_portal import router as citizen_portal_router
+from api.mother_portal import router as mother_portal_router
+from api.candidate_portal import router as candidate_portal_router
+from api.notifications import router as notifications_router
+from api.documents import router as documents_router
+from api.help import router as help_router
+from api.careers import router as careers_router
+from api.website_analytics import router as website_analytics_router
+from api.mobile import router as mobile_router
 
 app = FastAPI(
     title="URADI-360 API",
@@ -108,6 +123,7 @@ if origins:
 # Auth router - strict limits
 app.include_router(auth_router, prefix="/auth")
 app.include_router(oauth_router)
+app.include_router(password_reset_router)
 
 # API routers - standard limits
 app.include_router(tenants_router, prefix="/api")
@@ -138,7 +154,21 @@ app.include_router(compliance_router, prefix="/api")
 app.include_router(osint_router, prefix="/api")
 app.include_router(exports_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
+app.include_router(platform_admin_router, prefix="/api")
 app.include_router(users_api_router, prefix="/api")
+app.include_router(electoral_router, prefix="/api")
+
+# New frontend-supporting routers
+app.include_router(dashboard_router, prefix="/api")
+app.include_router(citizen_portal_router, prefix="/api")
+app.include_router(mother_portal_router, prefix="/api")
+app.include_router(candidate_portal_router, prefix="/api")
+app.include_router(notifications_router, prefix="/api")
+app.include_router(documents_router, prefix="/api")
+app.include_router(help_router, prefix="/api")
+app.include_router(careers_router, prefix="/api")
+app.include_router(website_analytics_router, prefix="/api")
+app.include_router(mobile_router, prefix="/api")
 
 @app.get("/")
 @limiter.limit("100/minute")
