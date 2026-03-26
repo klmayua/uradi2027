@@ -239,8 +239,8 @@ async def get_realtime_stats(
 
 @router.get("/export")
 async def export_analytics(
-    format: str = Query("json", regex="^(json|csv)$"),
-    report_type: str = Query("full", regex="^(full|traffic|conversions|pages)$"),
+    format: str = Query("json", pattern="^(json|csv)$"),
+    report_type: str = Query("full", pattern="^(full|traffic|conversions|pages)$"),
     days: int = Query(30, ge=1, le=365),
     current_user: User = Depends(require_permissions(["admin", "mother_portal"]))
 ):

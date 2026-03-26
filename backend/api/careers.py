@@ -48,7 +48,7 @@ class JobPostingResponse(BaseModel):
 
 class JobApplicationCreate(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
-    email: str = Field(..., regex=r'^\S+@\S+\.\S+$')
+    email: str = Field(..., pattern=r'^\S+@\S+\.\S+$')
     phone: str = Field(..., min_length=10)
     cover_letter: Optional[str] = Field(None, max_length=2000)
     linkedin_url: Optional[str] = None
